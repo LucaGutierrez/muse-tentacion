@@ -72,80 +72,52 @@
 
 
     /* ===========================
-       CHOCOLATE DERRETIDO VIVO
-       Una franja de chocolate brillante de la que cuelgan gotas.
-       Cada gota "respira", se estira, se afina en el cuello y se
-       desprende como gota que cae (acelera, se estira y salpica
-       al llegar abajo). La punta se vuelve a formar y repite.
-       Con el scroll, las gotas se alargan y gotean más; al volver
-       arriba se retraen suavemente.
-       Todo se dibuja con un único SVG cuyos paths se recalculan
-       con requestAnimationFrame (solo mientras el hero se ve).
+       CHOCOLATE DERRETIDO VIVO (técnica "gooey")
+       Una capa gruesa de chocolate pegada al navbar (empieza
+       detrás de él, así nunca queda hueco) con borde ondulado,
+       de la que nacen gotas orgánicas: base ancha que se funde
+       con la capa, cuello fino y bulbo redondeado en la punta.
+       Las formas simples (rect + elipses + círculos) se funden
+       en una sola masa líquida con un filtro blur + umbral.
+       Las gotas respiran, se estiran con el scroll (sin tapar
+       nunca el título) y se desprenden, caen y salpican.
     =========================== */
 
     const CONFIG_CHOCO = TRANQUILO
         ? {
-            banda: CELULAR ? 36 : 52,
-            separacion: CELULAR ? 90 : 130,     // menos gotas
-            ciclo: [9, 15],                      // segundos hasta desprenderse
-            respiracion: 0.12,
-            estiramientoScroll: 0.5,
-            gravedad: 650,
-            introduccion: 0.9
+            banda: CELULAR ? 34 : 48,          // chocolate visible debajo del navbar
+            densidad: CELULAR ? 0.55 : 0.6,    // menos gotas
+            ciclo: [10, 16],
+            respiracion: 0.1,
+            scroll: 0.35,
+            gravedad: 600,
+            entrada: 1,
+            fps: 24,
+            sombra: false
         }
         : {
-            banda: CELULAR ? 38 : 56,
-            separacion: CELULAR ? 64 : 100,
-            ciclo: [3.2, 7],
-            respiracion: 0.28,
-            estiramientoScroll: 1,
+            banda: CELULAR ? 36 : 52,
+            densidad: 1,
+            ciclo: [3.5, 7.5],
+            respiracion: 0.22,
+            scroll: 0.75,
             gravedad: 1500,
-            introduccion: 2.2
+            entrada: 2,
+            fps: CELULAR ? 30 : 40,
+            sombra: !CELULAR
         };
 
+    function suavizar(t) {
+        t = Math.max(0, Math.min(1, t));
+        return t * t * (3 - 2 * t);
+    }
+
     function suavizarSalida(t) {
-        // easeOutBack: llega con un pequeño rebote
-        const c1 = 1.4;
+        const c1 = 1.3;
         const c3 = c1 + 1;
         return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
     }
 
-    function suavizar(t) {
-        return t * t * (3 - 2 * t);
-    }
-
-    // Path de una gota colgante: columna + cuello + bulbo redondeado
-    function caminoGota(c, largo, radioBulbo, anchoCuello, banda) {
-
-        const x = c.x;
-        const izq = x - c.w / 2;
-        const der = x + c.w / 2;
-        const ensanche = c.w * 0.7;
-        const arriba = banda - 16;
-        const inicio = banda + 4;
-
-        const finColumna = Math.max(inicio + 2, banda + largo);
-        const largoCuello = Math.max(0, (c.w - anchoCuello) * 0.9);
-        const yCuello = finColumna + largoCuello;
-        const yBulbo = yCuello + radioBulbo * 0.85;
-        const mc = anchoCuello / 2;
-        const rb = radioBulbo;
-
-        return (
-            `M${n(izq - ensanche)} ${n(arriba)}` +
-            `C${n(izq - ensanche * 0.25)} ${n(arriba)} ${n(izq)} ${n(inicio - 8)} ${n(izq)} ${n(inicio + 4)}` +
-            `L${n(izq)} ${n(finColumna)}` +
-            `C${n(izq)} ${n(finColumna + largoCuello * 0.5)} ${n(x - mc)} ${n(yCuello - largoCuello * 0.3)} ${n(x - mc)} ${n(yCuello)}` +
-            `C${n(x - mc)} ${n(yCuello + rb * 0.2)} ${n(x - rb)} ${n(yBulbo - rb * 0.6)} ${n(x - rb)} ${n(yBulbo)}` +
-            `A${n(rb)} ${n(rb)} 0 0 0 ${n(x + rb)} ${n(yBulbo)}` +
-            `C${n(x + rb)} ${n(yBulbo - rb * 0.6)} ${n(x + mc)} ${n(yCuello + rb * 0.2)} ${n(x + mc)} ${n(yCuello)}` +
-            `C${n(x + mc)} ${n(yCuello - largoCuello * 0.3)} ${n(der)} ${n(finColumna + largoCuello * 0.5)} ${n(der)} ${n(finColumna)}` +
-            `L${n(der)} ${n(inicio + 4)}` +
-            `C${n(der)} ${n(inicio - 8)} ${n(der + ensanche * 0.25)} ${n(arriba)} ${n(der + ensanche)} ${n(arriba)}Z`
-        );
-    }
-
-    // Gota suelta (forma de lágrima) centrada en 0,0
     function caminoLagrima(r) {
         return (
             `M0 ${n(-r * 1.7)}` +
@@ -153,18 +125,6 @@
             `A${n(r)} ${n(r)} 0 0 1 ${n(-r)} 0` +
             `C${n(-r)} ${n(-r * 0.55)} ${n(-r * 0.35)} ${n(-r * 1.15)} 0 ${n(-r * 1.7)}Z`
         );
-    }
-
-    function bordeOndulado(puntos, dy, invertido) {
-        let d = "";
-        const lista = invertido ? puntos.slice().reverse() : puntos;
-        for (let i = 0; i < lista.length - 1; i++) {
-            const a = lista[i];
-            const b = lista[i + 1];
-            const medio = (a[0] + b[0]) / 2;
-            d += `C${n(medio)} ${n(a[1] + dy)} ${n(medio)} ${n(b[1] + dy)} ${n(b[0])} ${n(b[1] + dy)}`;
-        }
-        return d;
     }
 
     function crearChocolateVivo(hero) {
@@ -176,330 +136,411 @@
         let estado = null;
         let corriendo = false;
         let ultimoTiempo = 0;
+        let acumuladoCuadro = 0;
         let tiempoTotal = 0;
+
+        function altoNavbarHero() {
+            const valor = parseFloat(
+                getComputedStyle(document.documentElement).getPropertyValue("--alto-navbar-hero")
+            );
+            return isNaN(valor) ? 80 : valor;
+        }
 
         // ---------- Construcción ----------
         function construir() {
 
             const ancho = hero.clientWidth || window.innerWidth;
-            const arribaEnHero = goteo.offsetTop || 0;
-            const alto = Math.max(300, hero.offsetHeight - arribaEnHero);
-            const banda = CONFIG_CHOCO.banda;
-            const cantidad = Math.max(4, Math.round(ancho / CONFIG_CHOCO.separacion));
-            const paso = ancho / cantidad;
+            const altoHero = hero.offsetHeight;
+            const raiz = altoNavbarHero() + CONFIG_CHOCO.banda;   // borde inferior de la capa
+            const altoGoo = Math.min(altoHero, raiz + (CELULAR ? 300 : 380));
+            const piso = altoHero - 70;
 
             const svg = crearSvg("svg", {
-                viewBox: `0 0 ${n(ancho)} ${n(alto)}`,
+                viewBox: `0 0 ${n(ancho)} ${n(altoHero)}`,
                 width: n(ancho),
-                height: n(alto),
+                height: n(altoHero),
                 "aria-hidden": "true",
                 focusable: "false"
             });
 
             const defs = crearSvg("defs", {});
+            const sombra = CONFIG_CHOCO.sombra
+                ? `<feGaussianBlur in="goo" stdDeviation="5" result="sb"/>
+                   <feOffset in="sb" dy="7" result="so"/>
+                   <feFlood flood-color="#2a0f06" flood-opacity=".32"/>
+                   <feComposite in2="so" operator="in" result="sombra"/>
+                   <feMerge><feMergeNode in="sombra"/><feMergeNode in="goo"/></feMerge>`
+                : "";
+
             defs.innerHTML = `
-                <linearGradient id="chocoBase" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${n(alto)}">
-                    <stop offset="0" stop-color="#431a10"/>
-                    <stop offset="${n(banda / alto * 100) / 100}" stop-color="#55241a"/>
-                    <stop offset="${n(Math.min(0.9, (banda + 260) / alto) * 100) / 100}" stop-color="#6d2f1c"/>
-                    <stop offset="1" stop-color="#7a3622"/>
+                <linearGradient id="chocoLeche" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${n(altoGoo)}">
+                    <stop offset="0" stop-color="#4a1f12"/>
+                    <stop offset="${n((raiz - CONFIG_CHOCO.banda) / altoGoo * 100) / 100}" stop-color="#7a3a22"/>
+                    <stop offset="${n(raiz / altoGoo * 100) / 100}" stop-color="#6a2f1b"/>
+                    <stop offset="1" stop-color="#4a1f12"/>
                 </linearGradient>
-                <linearGradient id="chocoVolumen" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#1c0703" stop-opacity=".55"/>
-                    <stop offset=".22" stop-color="#1c0703" stop-opacity="0"/>
-                    <stop offset=".45" stop-color="#c7836a" stop-opacity=".22"/>
-                    <stop offset=".7" stop-color="#1c0703" stop-opacity="0"/>
-                    <stop offset="1" stop-color="#1c0703" stop-opacity=".6"/>
-                </linearGradient>
-                <linearGradient id="chocoBrilloBanda" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="chocoReflejoCapa" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".55" stop-color="#fff" stop-opacity=".12"/>
+                    <stop offset=".5" stop-color="#fff" stop-opacity=".42"/>
                     <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-                </linearGradient>`;
+                </linearGradient>
+                <filter id="chocoGoo" filterUnits="userSpaceOnUse" x="0" y="0" width="${n(ancho)}" height="${n(altoGoo)}" color-interpolation-filters="sRGB">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="${CELULAR ? 7 : 10}" result="b"/>
+                    <feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10" result="goo"/>
+                    ${sombra}
+                </filter>`;
             svg.appendChild(defs);
 
-            // Gotas: posiciones, grosores, largos y ritmos variados
+            const masa = crearSvg("g", { filter: "url(#chocoGoo)", fill: "url(#chocoLeche)" });
+
+            // Capa superior (empieza detrás del navbar: nunca queda hueco)
+            masa.appendChild(crearSvg("rect", { x: -20, y: -20, width: n(ancho + 40), height: n(raiz + 20) }));
+
+            // Borde inferior ondulado e irregular
+            let xb = -40;
+            while (xb < ancho + 40) {
+                const rx = azar(CELULAR ? 30 : 45, CELULAR ? 70 : 120);
+                masa.appendChild(crearSvg("ellipse", {
+                    cx: n(xb + rx),
+                    cy: n(raiz - azar(2, 6)),
+                    rx: n(rx),
+                    ry: n(azar(8, CELULAR ? 16 : 22))
+                }));
+                xb += rx * azar(1.2, 1.9);
+            }
+
+            // Gotas repartidas de forma pareja: una por "casillero" con
+            // posición semi-aleatoria dentro (así nunca se amontonan).
+            // En escritorio, a veces una gemela pegada.
             const gotas = [];
+            const separacion = (CELULAR ? 58 : 92) / CONFIG_CHOCO.densidad;
+            const casilleros = Math.max(4, Math.round(ancho / separacion));
+            const paso = ancho / casilleros;
 
-            for (let i = 0; i < cantidad; i++) {
+            for (let i = 0; i < casilleros; i++) {
 
-                const corta = Math.random() < 0.28;
-                const w = azar(CELULAR ? 20 : 30, CELULAR ? 34 : 58);
+                const tipo = Math.random();
+                const w = azar(CELULAR ? 16 : 22, CELULAR ? 32 : 62);
+                const largo = tipo < 0.25
+                    ? azar(6, 18)                                       // apenas un bulto
+                    : tipo < 0.6
+                        ? azar(CELULAR ? 30 : 40, CELULAR ? 70 : 100)   // medianas
+                        : azar(CELULAR ? 70 : 100, CELULAR ? 150 : 230); // largas
+
+                const x = paso * (i + 0.5) + azar(-paso * 0.22, paso * 0.22);
+
+                agregarGota(x, w, largo);
+
+                if (!CELULAR && Math.random() < 0.2) {
+                    const w2 = w * azar(0.55, 0.85);
+                    agregarGota(x + (w + w2) * 0.42, w2, largo * azar(0.35, 0.7));
+                }
+            }
+
+            function agregarGota(gx, w, largo) {
+
+                const base = crearSvg("ellipse", {});
+                const cuello = crearSvg("ellipse", {});
+                const bulbo = crearSvg("circle", {});
+
+                masa.appendChild(base);
+                masa.appendChild(cuello);
+                masa.appendChild(bulbo);
 
                 gotas.push({
-                    x: paso * (i + 0.5) + azar(-paso * 0.18, paso * 0.18),
+                    x: gx,
                     w: w,
-                    base: corta
-                        ? azar(CELULAR ? 12 : 18, CELULAR ? 26 : 40)
-                        : azar(CELULAR ? 36 : 56, CELULAR ? 95 : 160),
-                    gotea: !corta,
-                    // respiración
+                    largo: largo,
+                    gotea: largo > 30,
                     amplitud: w * CONFIG_CHOCO.respiracion * azar(0.6, 1.4),
-                    periodo: azar(2.4, 5.2) * (TRANQUILO ? 1.8 : 1),
+                    periodo: azar(2.6, 5.5) * (TRANQUILO ? 1.8 : 1),
                     fase: azar(0, Math.PI * 2),
-                    // scroll
-                    factorScroll: corta ? azar(0.05, 0.25) : azar(0.35, 1.5),
+                    ondula: azar(0.5, 2),
+                    factorScroll: largo > 30 ? azar(0.3, 1.2) : azar(0.05, 0.2),
                     estiramiento: 0,
-                    // ciclo de goteo
-                    progreso: azar(0, 0.7),
+                    progreso: azar(0, 0.6),
                     duracionCiclo: azar(CONFIG_CHOCO.ciclo[0], CONFIG_CHOCO.ciclo[1]),
                     rebote: 0,
                     velocidadRebote: 0,
-                    // entrada
-                    demora: azar(0.2, TRANQUILO ? 0.5 : 1.2),
-                    entrada: 0
+                    demora: azar(0.1, TRANQUILO ? 0.4 : 1.1),
+                    entrada: 0,
+                    base: base,
+                    cuello: cuello,
+                    bulbo: bulbo
                 });
             }
 
-            // Franja superior con borde ondulado
-            const puntos = [[0, banda - 4]];
-            gotas.forEach(function (g, i) {
-                puntos.push([g.x, banda + 6]);
-                if (gotas[i + 1]) {
-                    puntos.push([(g.x + gotas[i + 1].x) / 2, banda - azar(8, 16)]);
+            // Brillos (sin filtro, encima de la masa)
+            const brillos = crearSvg("g", { fill: "none", stroke: "#fff", "stroke-linecap": "round" });
+
+            // Reflejos de la capa: 2-3 curvas suaves y anchas que se
+            // desvanecen en las puntas (degradé de opacidad)
+            const cantidadReflejos = CELULAR ? 2 : 3;
+            for (let i = 0; i < cantidadReflejos; i++) {
+                const largoR = ancho * azar(CELULAR ? 0.28 : 0.16, CELULAR ? 0.38 : 0.24);
+                const x0 = (ancho / cantidadReflejos) * (i + azar(0.1, 0.9)) - largoR / 2;
+                const y0 = raiz - CONFIG_CHOCO.banda * azar(0.45, 0.62);
+                const curva = azar(8, 14);
+                const grosor = CELULAR ? 7 : 11;
+                brillos.appendChild(crearSvg("path", {
+                    d: `M${n(x0)} ${n(y0)}Q${n(x0 + largoR / 2)} ${n(y0 - curva)} ${n(x0 + largoR)} ${n(y0)}` +
+                       `Q${n(x0 + largoR / 2)} ${n(y0 - curva + grosor)} ${n(x0)} ${n(y0)}Z`,
+                    fill: "url(#chocoReflejoCapa)",
+                    stroke: "none"
+                }));
+            }
+
+            gotas.forEach(function (g) {
+                g.reflejo = crearSvg("path", { "stroke-opacity": ".5", "stroke-width": n(Math.max(1.6, g.w * 0.07)) });
+                g.punto = crearSvg("circle", { fill: "#fff", stroke: "none", "fill-opacity": ".75" });
+                brillos.appendChild(g.reflejo);
+                if (!CELULAR) {
+                    brillos.appendChild(g.punto);
                 }
             });
-            puntos.push([ancho, banda - 4]);
 
-            const dBanda = `M0 -2H${n(ancho)}V${n(banda - 4)}` + bordeOndulado(puntos, 0, true) + "Z";
+            const libres = crearSvg("g", {});     // gotas que ya salieron del área del filtro
 
-            const grupoBanda = crearSvg("g", { class: "choco-banda" });
-            grupoBanda.appendChild(crearSvg("path", { d: dBanda, fill: "#3d1811", "fill-opacity": ".22", transform: "translate(0 5)" }));
-            grupoBanda.appendChild(crearSvg("path", { d: dBanda, fill: "url(#chocoBase)" }));
-            grupoBanda.appendChild(crearSvg("path", { d: dBanda, fill: "url(#chocoBrilloBanda)" }));
-            grupoBanda.appendChild(crearSvg("path", {
-                d: `M0 ${n(banda - 14)}` + bordeOndulado(puntos, -10, false),
-                fill: "none",
-                stroke: "#fff",
-                "stroke-opacity": ".35",
-                "stroke-width": CELULAR ? 2.5 : 3.5,
-                "stroke-linecap": "round",
-                "stroke-dasharray": CELULAR ? "60 50 12 40" : "120 70 18 60"
-            }));
-
-            // Capa de gotas (debajo de la franja para que el empalme no se note)
-            const capaGotas = crearSvg("g", {});
-            const capaSueltas = crearSvg("g", {});
-
-            gotas.forEach(function (g, i) {
-
-                const id = `chocoGota${i}`;
-                const forma = crearSvg("path", { id: id });
-                defs.appendChild(forma);
-
-                const grupo = crearSvg("g", {});
-                grupo.appendChild(crearSvg("use", { href: `#${id}`, fill: "#3d1811", "fill-opacity": ".2", transform: "translate(2 6)" }));
-                grupo.appendChild(crearSvg("use", { href: `#${id}`, fill: "url(#chocoBase)" }));
-                grupo.appendChild(crearSvg("use", { href: `#${id}`, fill: "url(#chocoVolumen)" }));
-
-                const brillo = crearSvg("path", {
-                    fill: "none",
-                    stroke: "#fff",
-                    "stroke-opacity": ".5",
-                    "stroke-width": n(g.w * 0.14),
-                    "stroke-linecap": "round"
-                });
-
-                const reflejo = crearSvg("ellipse", {
-                    rx: n(g.w * 0.12),
-                    ry: n(g.w * 0.07),
-                    fill: "#fff",
-                    "fill-opacity": ".45"
-                });
-
-                grupo.appendChild(brillo);
-                grupo.appendChild(reflejo);
-                capaGotas.appendChild(grupo);
-
-                g.forma = forma;
-                g.brillo = brillo;
-                g.reflejo = reflejo;
-            });
-
-            svg.appendChild(capaGotas);
-            svg.appendChild(grupoBanda);
-            svg.appendChild(capaSueltas);
+            svg.appendChild(masa);
+            svg.appendChild(brillos);
+            svg.appendChild(libres);
 
             return {
-                svg: svg,
-                ancho: ancho,
-                alto: alto,
-                banda: banda,
-                gotas: gotas,
-                sueltas: [],
-                salpicaduras: [],
-                capaSueltas: capaSueltas,
-                piso: alto - 70,
-                estiramientoMax: alto - banda - 120
+                svg: svg, ancho: ancho, raiz: raiz, altoGoo: altoGoo, piso: piso,
+                masa: masa, libres: libres, gotas: gotas,
+                cayendo: [], salpicaduras: []
             };
         }
 
-        // ---------- Desprender una gota ----------
-        function soltar(g, x, y, r) {
+        // Zona del título: las gotas que pasan por arriba de él
+        // nunca llegan a taparlo; las de los costados pueden bajar más.
+        function zonaTitulo() {
+            const titulo = hero.querySelector("h1");
+            const libre = estado.altoGoo - 40;
+            if (!titulo) {
+                return { izq: 0, der: 0, arriba: libre, libre: libre };
+            }
+            const r = titulo.getBoundingClientRect();
+            const h = goteo.getBoundingClientRect();   // coordenadas del SVG
+            const margen = CELULAR ? 16 : 40;
+            return {
+                izq: r.left - h.left - margen,
+                der: r.right - h.left + margen,
+                arriba: Math.min(libre, r.top - h.top - 18),
+                libre: libre
+            };
+        }
 
+        // ---------- Gotas que se desprenden ----------
+        function desprender(x, y, r) {
+            // Elipse + colita: dentro del filtro se ven como una lágrima líquida
+            const cuerpo = crearSvg("ellipse", { cx: n(x), cy: n(y), rx: n(r), ry: n(r * 1.15) });
+            const cola = crearSvg("circle", { cx: n(x), cy: n(y - r), r: n(r * 0.5) });
+            estado.masa.appendChild(cuerpo);
+            estado.masa.appendChild(cola);
+            estado.cayendo.push({ el: cuerpo, cola: cola, x: x, y: y, r: r, vy: 20, enGoo: true });
+        }
+
+        function pasarAFuera(c) {
+            // Sale del área del filtro: se convierte en una lágrima nítida
+            c.el.remove();
+            c.cola.remove();
             const grupo = crearSvg("g", {});
-            grupo.appendChild(crearSvg("path", { d: caminoLagrima(r), fill: "url(#chocoBase)" }));
-            grupo.appendChild(crearSvg("ellipse", {
-                cx: n(-r * 0.35), cy: n(-r * 0.25), rx: n(r * 0.22), ry: n(r * 0.36),
-                fill: "#fff", "fill-opacity": ".45",
-                transform: `rotate(20 ${n(-r * 0.35)} ${n(-r * 0.25)})`
+            grupo.appendChild(crearSvg("path", { d: caminoLagrima(c.r * 0.85), fill: "url(#chocoLeche)" }));
+            grupo.appendChild(crearSvg("path", {
+                d: `M${n(-c.r * 0.42)} ${n(-c.r * 0.7)}Q${n(-c.r * 0.6)} ${n(-c.r * 0.1)} ${n(-c.r * 0.35)} ${n(c.r * 0.35)}`,
+                fill: "none", stroke: "#fff", "stroke-opacity": ".55",
+                "stroke-width": n(Math.max(1.4, c.r * 0.14)), "stroke-linecap": "round"
             }));
-            estado.capaSueltas.appendChild(grupo);
-
-            estado.sueltas.push({ el: grupo, x: x, y: y, r: r, vy: 30 });
+            estado.libres.appendChild(grupo);
+            c.el = grupo;
+            c.enGoo = false;
         }
 
         function salpicar(x, y, r) {
-
-            const grupo = crearSvg("g", {});
-            grupo.appendChild(crearSvg("ellipse", { cx: 0, cy: 0, rx: n(r * 2.2), ry: n(r * 0.55), fill: "url(#chocoBase)" }));
-            for (let i = 0; i < 3; i++) {
+            // Coronita sutil de 3-4 gotitas que se abre y se desvanece
+            const grupo = crearSvg("g", { fill: "#6a2f1b" });
+            const cantidad = 3 + Math.round(Math.random());
+            for (let i = 0; i < cantidad; i++) {
+                const a = Math.PI * (0.15 + 0.7 * (i + 0.5) / cantidad);
                 grupo.appendChild(crearSvg("circle", {
-                    cx: n(azar(-r * 2.6, r * 2.6)),
-                    cy: n(-azar(r * 0.6, r * 1.6)),
-                    r: n(azar(r * 0.18, r * 0.35)),
-                    fill: "#55241a"
+                    cx: n(-Math.cos(a) * r * 1.3),
+                    cy: n(-Math.sin(a) * r * 1.4),
+                    r: n(Math.max(1.2, r * 0.12))
                 }));
             }
-            estado.capaSueltas.appendChild(grupo);
+            estado.libres.appendChild(grupo);
             estado.salpicaduras.push({ el: grupo, x: x, y: y, t: 0 });
         }
 
-        // ---------- Un cuadro de animación ----------
+        // ---------- Animación ----------
         function cuadro(tiempo) {
 
-            const dt = Math.min(0.05, (tiempo - ultimoTiempo) / 1000 || 0.016);
+            const dtReal = Math.min(0.1, (tiempo - ultimoTiempo) / 1000 || 0.016);
             ultimoTiempo = tiempo;
-            tiempoTotal += dt;
 
             const scroll = Math.max(0, window.scrollY);
             const altoHero = hero.offsetHeight;
-            const objetivoScroll = Math.min(scroll, altoHero) * CONFIG_CHOCO.estiramientoScroll;
-            const aceleracion = 1 + Math.min(scroll, altoHero) / (TRANQUILO ? 900 : 350);
-            const banda = estado.banda;
+            const visible = scroll < altoHero && !document.hidden;
+
+            if (!visible) {
+                corriendo = false;
+                return;
+            }
+
+            window.requestAnimationFrame(cuadro);
+
+            // Limita los cuadros por segundo (el filtro es lo que cuesta)
+            acumuladoCuadro += dtReal;
+            if (acumuladoCuadro < 1 / CONFIG_CHOCO.fps) {
+                return;
+            }
+            const dt = Math.min(0.1, acumuladoCuadro);
+            acumuladoCuadro = 0;
+            tiempoTotal += dt;
+
+            const raiz = estado.raiz;
+
+            // El chocolate baja con vos (mismo parallax que el título)
+            goteo.style.transform = TRANQUILO
+                ? ""
+                : `translate3d(0, ${n(Math.min(scroll, altoHero) * 0.35)}px, 0)`;
+
+            const zona = zonaTitulo();
+            const empuje = Math.min(scroll, altoHero) * CONFIG_CHOCO.scroll;
+            const apuro = 1 + Math.min(scroll, altoHero) / (TRANQUILO ? 900 : 320);
 
             estado.gotas.forEach(function (g) {
 
-                // Entrada
-                if (g.entrada < 1) {
-                    if (tiempoTotal > g.demora) {
-                        g.entrada = Math.min(1, g.entrada + dt / CONFIG_CHOCO.introduccion);
-                    }
+                if (tiempoTotal > g.demora && g.entrada < 1) {
+                    g.entrada = Math.min(1, g.entrada + dt / CONFIG_CHOCO.entrada);
+                }
+                const aparicion = g.entrada < 1 ? Math.max(0, suavizarSalida(g.entrada)) : 1;
+
+                // Estiramiento por scroll, suave y con retroceso
+                const objetivo = empuje * g.factorScroll;
+                g.estiramiento += (objetivo - g.estiramiento) * Math.min(1, dt * 3);
+
+                // Ciclo: el bulbo engorda y baja, el cuello se afina, se suelta
+                let p = 0;
+                // Las gotas que están sobre el título no se sueltan
+                // (así nada cae por encima del texto)
+                const sobreTitulo = g.x + g.w > zona.izq && g.x - g.w < zona.der;
+
+                if (g.gotea && g.entrada >= 1 && !sobreTitulo) {
+                    g.progreso += (dt / g.duracionCiclo) * apuro;
+                    p = Math.min(1, g.progreso);
+                } else if (g.progreso > 0) {
+                    g.progreso = Math.max(0, g.progreso - dt * 0.25);
+                    p = Math.min(1, g.progreso);
                 }
 
-                const factorEntrada = g.entrada < 1 ? suavizarSalida(g.entrada) : 1;
-
-                // Estiramiento por scroll (se retrae suave al volver)
-                const objetivo = Math.min(objetivoScroll * g.factorScroll, estado.estiramientoMax - g.base);
-                g.estiramiento += (objetivo - g.estiramiento) * Math.min(1, dt * 3.5);
-
-                // Ciclo de goteo
-                let radio = g.w / 2;
-                let cuello = g.w;
-                let crecimiento = 0;
-
-                if (g.gotea && g.entrada >= 1) {
-
-                    g.progreso += (dt / g.duracionCiclo) * aceleracion;
-
-                    const p = Math.min(1, g.progreso);
-                    const formando = Math.min(1, p / 0.1);   // la punta se vuelve a formar
-
-                    radio = (g.w / 2) * (0.6 + 0.4 * suavizar(formando)) * (1 + 0.5 * suavizar(p));
-                    cuello = p < 0.55 ? g.w : g.w * (1 - 0.94 * suavizar((p - 0.55) / 0.45));
-                    crecimiento = g.w * 1.6 * p * p;
-                }
-
-                // Rebote elástico después de soltar la gota
-                g.velocidadRebote += (-g.rebote * 60 - g.velocidadRebote * 7) * dt;
+                g.velocidadRebote += (-g.rebote * 55 - g.velocidadRebote * 6.5) * dt;
                 g.rebote += g.velocidadRebote * dt;
 
-                const respiracion = g.amplitud * Math.sin((tiempoTotal / g.periodo) * Math.PI * 2 + g.fase);
-                const largo = (g.base + respiracion + g.estiramiento + crecimiento) * factorEntrada + g.rebote;
+                const respira = g.amplitud * Math.sin((tiempoTotal / g.periodo) * Math.PI * 2 + g.fase);
+                const formando = suavizar(p / 0.12);
+                const radioBulbo = g.w * (0.3 + 0.12 * formando + 0.16 * suavizar(p));
 
-                g.forma.setAttribute("d", caminoGota(g, largo, radio, cuello, banda));
+                let largo = (g.largo + respira + g.estiramiento + g.w * 1.3 * p * p) * aparicion + g.rebote;
 
-                // Brillo largo del lado izquierdo y reflejo en la punta
-                const finColumna = banda + Math.max(6, largo);
-                const xb = g.x - g.w * 0.2;
-                if (largo > 26) {
-                    g.brillo.setAttribute(
+                // Nunca sobre el título
+                const limite = sobreTitulo ? zona.arriba : zona.libre;
+                const maximo = limite - raiz - radioBulbo * 1.2;
+                largo = Math.max(4, Math.min(largo, Math.max(8, maximo)));
+
+                const ondula = Math.sin(tiempoTotal * 0.9 + g.fase) * g.ondula;
+                const yPunta = raiz + largo;
+
+                // Base ancha (menisco), cuello que se afina y bulbo
+                g.base.setAttribute("cx", n(g.x));
+                g.base.setAttribute("cy", n(raiz + Math.min(largo, g.w) * 0.25));
+                g.base.setAttribute("rx", n(g.w * 0.55));
+                g.base.setAttribute("ry", n(Math.min(largo, g.w) * 0.55 + 6));
+
+                // Cuello: nunca tan fino como para que el filtro lo borre,
+                // salvo justo antes de soltar la gota
+                const afinar = suavizar((p - 0.6) / 0.4);
+                const anchoCuello = Math.max(CELULAR ? 8 : 10, g.w * 0.42) * (1 - 0.6 * afinar);
+                g.cuello.setAttribute("cx", n(g.x + ondula * 0.5));
+                g.cuello.setAttribute("cy", n(raiz + largo * 0.5));
+                g.cuello.setAttribute("rx", n(anchoCuello));
+                g.cuello.setAttribute("ry", n(largo * 0.5 + 2));
+
+                g.bulbo.setAttribute("cx", n(g.x + ondula));
+                g.bulbo.setAttribute("cy", n(yPunta));
+                g.bulbo.setAttribute("r", n(radioBulbo * Math.min(1, aparicion + 0.3)));
+
+                // Brillo especular fino y alargado + punto en la punta
+                if (largo > 60 && anchoCuello >= 9) {
+                    const xr = g.x - anchoCuello * 0.3;
+                    g.reflejo.setAttribute(
                         "d",
-                        `M${n(xb)} ${n(banda + 10)}Q${n(xb - g.w * 0.06)} ${n((banda + finColumna) / 2)} ${n(xb + g.w * 0.02)} ${n(finColumna - g.w * 0.1)}`
+                        `M${n(xr)} ${n(raiz + g.w * 0.45)}Q${n(xr - g.w * 0.03)} ${n(raiz + largo * 0.55)} ${n(g.x - radioBulbo * 0.5 + ondula)} ${n(yPunta - radioBulbo * 0.15)}`
                     );
-                    g.brillo.setAttribute("stroke-opacity", ".5");
+                    g.reflejo.setAttribute("stroke-opacity", ".45");
                 } else {
-                    g.brillo.setAttribute("stroke-opacity", "0");
+                    g.reflejo.setAttribute("stroke-opacity", "0");
                 }
 
-                const largoCuello = Math.max(0, (g.w - cuello) * 0.9);
-                const yBulbo = finColumna + largoCuello + radio * 0.85;
-                const rx = g.x + radio * 0.38;
-                const ry = yBulbo + radio * 0.42;
-                g.reflejo.setAttribute("cx", n(rx));
-                g.reflejo.setAttribute("cy", n(ry));
-                g.reflejo.setAttribute("transform", `rotate(-30 ${n(rx)} ${n(ry)})`);
+                g.punto.setAttribute("cx", n(g.x + ondula - radioBulbo * 0.38));
+                g.punto.setAttribute("cy", n(yPunta - radioBulbo * 0.1));
+                g.punto.setAttribute("r", largo > 20 ? n(Math.max(1.2, radioBulbo * 0.13)) : 0);
 
-                // ¡Se desprende!
+                // Se desprende: un círculo sigue bajando y el filtro hace el cuello
                 if (g.gotea && g.progreso >= 1) {
-                    soltar(g, g.x, yBulbo, radio * 0.92);
+                    desprender(g.x + ondula, yPunta + radioBulbo * 0.3, radioBulbo * 0.95);
                     g.progreso = 0;
                     g.duracionCiclo = azar(CONFIG_CHOCO.ciclo[0], CONFIG_CHOCO.ciclo[1]);
-                    g.rebote = -g.w * 0.5;
+                    g.rebote = -g.w * 0.45;
                     g.velocidadRebote = 0;
                 }
             });
 
-            // Gotas sueltas: caen acelerando y se estiran
-            const limiteVista = scroll + window.innerHeight - (hero.offsetTop + goteo.offsetTop);
+            // Gotas cayendo
+            for (let i = estado.cayendo.length - 1; i >= 0; i--) {
 
-            for (let i = estado.sueltas.length - 1; i >= 0; i--) {
+                const c = estado.cayendo[i];
+                c.vy += CONFIG_CHOCO.gravedad * dt;
+                c.y += c.vy * dt;
 
-                const s = estado.sueltas[i];
-                s.vy += CONFIG_CHOCO.gravedad * dt;
-                s.y += s.vy * dt;
+                if (c.enGoo) {
+                    c.el.setAttribute("cy", n(c.y));
+                    c.el.setAttribute("ry", n(c.r * (1.15 + Math.min(c.vy / 2500, 0.3))));
+                    c.cola.setAttribute("cy", n(c.y - c.r * (1.05 + Math.min(c.vy / 1500, 0.5))));
+                    if (c.y > estado.altoGoo - c.r * 2.5) {
+                        pasarAFuera(c);
+                    }
+                }
 
-                const estirar = 1 + Math.min(s.vy / 2200, 0.35);
+                if (!c.enGoo) {
+                    const estirar = 1 + Math.min(c.vy / 2200, 0.35);
+                    c.el.setAttribute(
+                        "transform",
+                        `translate(${n(c.x)} ${n(c.y)}) scale(${n(100 / Math.sqrt(estirar)) / 100} ${n(estirar * 100) / 100})`
+                    );
+                }
 
-                s.el.setAttribute(
-                    "transform",
-                    `translate(${n(s.x)} ${n(s.y)}) scale(${n(1 / Math.sqrt(estirar) * 100) / 100} ${n(estirar * 100) / 100})`
-                );
-
-                if (s.y + s.r >= estado.piso) {
-                    s.el.remove();
-                    estado.sueltas.splice(i, 1);
-                    salpicar(s.x, estado.piso, s.r);
-                } else if (s.y - s.r * 2 > limiteVista) {
-                    s.el.remove();
-                    estado.sueltas.splice(i, 1);
+                if (c.y + c.r >= estado.piso) {
+                    c.el.remove();
+                    if (c.cola) c.cola.remove();
+                    estado.cayendo.splice(i, 1);
+                    salpicar(c.x, estado.piso, c.r);
                 }
             }
 
-            // Salpicaduras: se abren y se desvanecen
+            // Salpicaduras
             for (let i = estado.salpicaduras.length - 1; i >= 0; i--) {
-
                 const s = estado.salpicaduras[i];
-                s.t += dt / 0.55;
-
+                s.t += dt / 0.35;
                 if (s.t >= 1) {
                     s.el.remove();
                     estado.salpicaduras.splice(i, 1);
                     continue;
                 }
-
-                const k = 0.4 + 0.6 * suavizar(Math.min(1, s.t * 1.6));
-                s.el.setAttribute("transform", `translate(${n(s.x)} ${n(s.y)}) scale(${n(k * 100) / 100} ${n(k * 100) / 100})`);
+                const k = 0.4 + 0.6 * suavizar(s.t * 1.6);
+                s.el.setAttribute("transform", `translate(${n(s.x)} ${n(s.y)}) scale(${n(k * 100) / 100})`);
                 s.el.setAttribute("opacity", n((1 - s.t) * 100) / 100);
-            }
-
-            // Seguir solo si el hero se ve y la pestaña está activa
-            const visible = scroll < hero.offsetTop + altoHero && !document.hidden;
-
-            if (visible) {
-                window.requestAnimationFrame(cuadro);
-            } else {
-                corriendo = false;
             }
         }
 
@@ -511,11 +552,10 @@
             }
         }
 
-        function montar(animarEntrada) {
+        function montar(conEntrada) {
             const nuevo = construir();
-            if (!animarEntrada) {
+            if (!conEntrada) {
                 nuevo.gotas.forEach(function (g) { g.entrada = 1; });
-                goteo.classList.add("sin-animar");
             }
             if (estado) {
                 goteo.replaceChild(nuevo.svg, estado.svg);
@@ -525,7 +565,6 @@
             estado = nuevo;
         }
 
-        // Se arma cuando el contenedor ya está en el DOM (para medir)
         window.requestAnimationFrame(function () {
             montar(true);
             arrancar();
@@ -534,19 +573,12 @@
         window.addEventListener("scroll", arrancar, { passive: true });
         document.addEventListener("visibilitychange", arrancar);
 
-        let anchoActual = 0;
         let espera = null;
-
         window.addEventListener("resize", function () {
             clearTimeout(espera);
             espera = setTimeout(function () {
                 if (!estado) return;
-                const nuevoAncho = hero.clientWidth;
-                if (Math.abs(nuevoAncho - (anchoActual || estado.ancho)) < 40 &&
-                    Math.abs(hero.offsetHeight - goteo.offsetTop - estado.alto) < 60) {
-                    return;
-                }
-                anchoActual = nuevoAncho;
+                if (Math.abs(hero.clientWidth - estado.ancho) < 40) return;
                 montar(false);
                 arrancar();
             }, 200);

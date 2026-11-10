@@ -269,11 +269,11 @@ textarea {
     will-change: transform, opacity;
 }
 
-/* Chocolate derretido brillante (SVG armado por animaciones.js).
-   Cuelga justo debajo del navbar, como si chorreara de él. */
+/* Chocolate derretido (SVG "gooey" armado por animaciones.js).
+   Sale de debajo del navbar, como si chorreara de él. */
 .hero-goteo {
     position: absolute;
-    top: var(--alto-navbar-hero);
+    top: 0;           /* empieza detrás del navbar: la capa nunca deja hueco */
     left: 0;
     right: 0;
 
@@ -289,26 +289,6 @@ textarea {
     height: auto;
 
     overflow: visible;
-}
-
-/* La banda baja desde arriba */
-.choco-banda {
-    animation: choco-bajar 0.9s cubic-bezier(.3, .8, .3, 1) both;
-}
-
-/* Al redibujar por cambio de tamaño no se repite la entrada */
-.hero-goteo.sin-animar .choco-banda {
-    animation: none;
-}
-
-@keyframes choco-bajar {
-    from {
-        transform: translateY(-110%);
-    }
-
-    to {
-        transform: none;
-    }
 }
 
 /* Indicador para bajar */
