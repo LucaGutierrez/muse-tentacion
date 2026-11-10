@@ -87,7 +87,7 @@
         ? {
             banda: CELULAR ? 34 : 48,          // chocolate visible debajo del navbar
             densidad: CELULAR ? 0.55 : 0.6,    // menos gotas
-            ciclo: [10, 16],
+            ciclo: [4, 7],                      // gotea solo, más lento
             respiracion: 0.1,
             scroll: 0.35,
             gravedad: 600,
@@ -98,7 +98,7 @@
         : {
             banda: CELULAR ? 36 : 52,
             densidad: 1,
-            ciclo: [3.5, 7.5],
+            ciclo: [2.4, 5.2],                  // gotea solo, en reposo
             respiracion: 0.22,
             scroll: 0.75,
             gravedad: 1500,
@@ -258,7 +258,7 @@
                     ondula: azar(0.5, 2),
                     factorScroll: largo > 30 ? azar(0.3, 1.2) : azar(0.05, 0.2),
                     estiramiento: 0,
-                    progreso: azar(0, 0.6),
+                    progreso: azar(0.35, 0.85),   // las primeras gotas caen enseguida
                     duracionCiclo: azar(CONFIG_CHOCO.ciclo[0], CONFIG_CHOCO.ciclo[1]),
                     rebote: 0,
                     velocidadRebote: 0,
@@ -423,15 +423,13 @@
 
                 // Ciclo: el bulbo engorda y baja, el cuello se afina, se suelta
                 let p = 0;
-                // Las gotas que están sobre el título no se sueltan
-                // (así nada cae por encima del texto)
+                // Gotea solo, en reposo; el scroll solo acelera (apuro).
+                // Las gotas sobre el título no se alargan hasta el texto,
+                // pero también se sueltan: caen por detrás de las letras.
                 const sobreTitulo = g.x + g.w > zona.izq && g.x - g.w < zona.der;
 
-                if (g.gotea && g.entrada >= 1 && !sobreTitulo) {
+                if (g.gotea && g.entrada >= 1) {
                     g.progreso += (dt / g.duracionCiclo) * apuro;
-                    p = Math.min(1, g.progreso);
-                } else if (g.progreso > 0) {
-                    g.progreso = Math.max(0, g.progreso - dt * 0.25);
                     p = Math.min(1, g.progreso);
                 }
 
