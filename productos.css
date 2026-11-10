@@ -1,264 +1,372 @@
+/* =========================================================
+   MUSÉ TENTACIÓN · CATÁLOGO (listado de productos)
+   Usa las variables de color definidas en style.css.
+   Celular primero.
+========================================================= */
 
 /* ===========================
-   PÁGINAS DE PRODUCTOS
+   CABECERA
 =========================== */
 
 .cabecera-listado {
-    min-height: 280px;
-    padding: 70px 24px;
+    position: relative;
+
+    min-height: 240px;
+    padding: 56px 20px 70px;
+
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+
     text-align: center;
-    background: var(--verde-muse);
-    color: var(--dorado-muse);
+
+    background:
+        radial-gradient(circle at 85% 25%, rgba(239, 129, 153, 0.25) 0, rgba(239, 129, 153, 0) 40%),
+        radial-gradient(circle at 10% 85%, rgba(251, 179, 193, 0.5) 0, rgba(251, 179, 193, 0) 40%),
+        var(--rosa-niebla);
+    color: var(--chocolate);
+}
+
+/* Onda crema al pie de la cabecera */
+.cabecera-listado::after {
+    content: "";
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+
+    height: 36px;
+
+    background: var(--onda-crema) center bottom / 100% 100% no-repeat;
 }
 
 .cabecera-listado p {
-    margin-bottom: 12px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 4px;
-}
+    margin-bottom: 6px;
 
-.cabecera-listado h1 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 68px;
-    font-weight: 300;
-    letter-spacing: 7px;
+    color: var(--frutilla-intensa);
+
+    font-size: 12px;
+    font-weight: 800;
+
+    letter-spacing: 3px;
     text-transform: uppercase;
 }
 
-.cabecera-listado span {
-    margin-top: 12px;
-    color: var(--dorado-suave);
-    font-size: 12px;
+.cabecera-listado h1 {
+    font-family: var(--fuente-titulos);
+    font-size: clamp(42px, 11vw, 72px);
+    font-weight: 400;
+    line-height: 1.1;
 }
 
+.cabecera-listado span {
+    margin-top: 10px;
+
+    color: var(--chocolate-suave);
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ===========================
+   LISTADO
+=========================== */
+
 .listado-productos {
-    min-height: 650px;
-    padding: 70px 6% 100px;
-    background: var(--fondo-claro);
-    color: var(--verde-muse);
+    min-height: 500px;
+
+    padding: 36px 16px 80px;
+
+    background: var(--crema);
+    color: var(--chocolate);
 }
 
 .barra-listado {
     max-width: 1400px;
-    margin: 0 auto 30px;
+
+    margin: 0 auto 24px;
+
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 25px;
+    flex-wrap: wrap;
+
+    gap: 12px;
 }
 
 .barra-listado p {
-    color: #60766f;
-    font-size: 12px;
+    color: var(--chocolate-suave);
+
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .barra-listado select {
     min-width: 170px;
-    height: 39px;
-    padding: 0 12px;
-    background: transparent;
-    color: var(--verde-muse);
-    border: 1px solid rgba(15, 61, 52, 0.35);
+    height: 42px;
+
+    padding: 0 40px 0 18px;
+
+    color: var(--chocolate);
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2355241a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") right 14px center / 16px no-repeat,
+        var(--blanco);
+
+    border: 1.5px solid var(--rosa-claro);
+    border-radius: var(--pildora);
     outline: none;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    -webkit-appearance: none;
+    appearance: none;
+
+    cursor: pointer;
+}
+
+.barra-listado select:focus {
+    border-color: var(--frutilla);
+    box-shadow: 0 0 0 4px rgba(239, 129, 153, 0.18);
 }
 
 .grilla-listado {
     max-width: 1400px;
+
     margin: 0 auto;
+
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 42px 24px;
+    grid-template-columns: 1fr;
+    gap: 22px;
 }
+
+/* ===========================
+   TARJETA DE PRODUCTO
+=========================== */
 
 .producto-card {
     min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 10px;
+
+    background: var(--blanco);
+
+    border-radius: var(--radio-grande);
+    box-shadow: var(--sombra-suave);
+
+    transition:
+        transform 0.35s ease,
+        box-shadow 0.35s ease;
+}
+
+.producto-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--sombra-media);
+}
+
+.producto-card-link {
+    display: block;
+
+    color: inherit;
+    text-decoration: none;
+
+    cursor: pointer;
 }
 
 .producto-card-imagen {
     position: relative;
-    height: 390px;
+
+    aspect-ratio: 1 / 1;
+
     overflow: hidden;
-    background: #dce7df;
+
+    background: var(--rosa-niebla);
+
+    border-radius: calc(var(--radio-grande) - 8px);
 }
 
 .producto-card-imagen img {
     display: block;
+
     width: 100%;
     height: 100%;
+
     object-fit: cover;
-    transition: transform .6s ease, filter .6s ease;
+
+    transition: transform 0.6s ease;
 }
 
 .producto-card:hover .producto-card-imagen img {
-    transform: scale(1.04);
-    filter: brightness(.9);
+    transform: scale(1.06);
 }
 
 .producto-card-etiqueta {
     position: absolute;
-    top: 14px;
-    left: 14px;
+    top: 12px;
+    left: 12px;
+
     z-index: 2;
-    padding: 7px 10px;
-    background: var(--verde-muse);
-    color: var(--dorado-muse);
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 1px;
+
+    padding: 6px 12px;
+
+    color: var(--chocolate);
+    background: var(--rosa-claro);
+
+    border-radius: var(--pildora);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    letter-spacing: 0.8px;
     text-transform: uppercase;
 }
 
 .producto-card-info {
-    padding-top: 18px;
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding: 16px 10px 10px;
+
     text-align: center;
 }
 
 .producto-card-info h2 {
-    margin-bottom: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: .8px;
-    text-transform: uppercase;
+    margin-bottom: 4px;
+
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.producto-titulo-link {
+    color: inherit;
+    text-decoration: none;
+
+    transition: color 0.25s ease;
+}
+
+.producto-card:hover .producto-titulo-link {
+    color: var(--frutilla-intensa);
 }
 
 .producto-card-material {
-    margin-bottom: 10px;
-    color: #6a7e78;
-    font-size: 11px;
+    margin-bottom: 6px;
+
+    color: var(--chocolate-suave);
+
+    font-size: 13px;
+    font-weight: 600;
+
     text-transform: capitalize;
 }
 
+.producto-card-material:empty,
+.producto-card-descripcion:empty {
+    display: none;
+}
+
 .producto-card-descripcion {
-    min-height: 42px;
-    margin-bottom: 13px;
-    color: #60736d;
-    font-size: 11px;
-    line-height: 1.6;
+    margin-bottom: 10px;
+
+    color: var(--chocolate-suave);
+
+    font-size: 14px;
+    line-height: 1.55;
 }
 
 .producto-card-precio {
     display: block;
-    margin-bottom: 16px;
-    color: var(--dorado-muse);
-    font-size: 18px;
-    font-weight: 600;
+
+    margin: auto 0 10px;
+    padding-top: 4px;
+
+    color: var(--frutilla-intensa);
+
+    font-size: 22px;
+    font-weight: 800;
 }
 
-.producto-card-acciones{
-    display:flex;
-    justify-content:center;
-    margin-top:6px;
-}
+.producto-card-acciones {
+    width: 100%;
 
-.producto-card-acciones .ver-detalle{
-    width:220px;
+    display: flex;
+    justify-content: center;
+
+    margin-top: 6px;
 }
 
 .producto-card-acciones a,
 .producto-card-acciones button {
-    min-height: 44px;
-    padding: 0 12px;
+    width: 100%;
+    max-width: 260px;
+    min-height: 46px;
+
+    padding: 0 18px;
+
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 1px solid var(--verde-muse);
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 1px;
+
+    border: 2px solid var(--chocolate);
+    border-radius: var(--pildora);
+
+    font-family: var(--fuente-texto);
+    font-size: 14px;
+    font-weight: 800;
+
+    letter-spacing: 0.3px;
     text-decoration: none;
-    text-transform: uppercase;
+
     cursor: pointer;
-    transition: background .3s ease, color .3s ease;
+
+    transition:
+        background 0.25s ease,
+        color 0.25s ease,
+        border-color 0.25s ease;
 }
 
+/* Botón principal de la tarjeta: rosa con texto chocolate */
 .ver-detalle {
-    background: transparent;
-    color: var(--verde-muse);
-}
+    background: var(--frutilla);
+    color: var(--chocolate);
 
-.agregar-desde-listado {
-    background: var(--verde-muse);
-    color: var(--dorado-muse);
+    border-color: var(--frutilla) !important;
 }
 
 .ver-detalle:hover {
-    background: rgba(15, 61, 52, .08);
+    background: var(--chocolate);
+    color: var(--crema);
+
+    border-color: var(--chocolate) !important;
+}
+
+.ver-detalle.producto-agotado {
+    background: transparent;
+    color: var(--chocolate-suave);
+
+    border-color: var(--borde-fuerte) !important;
+}
+
+.ver-detalle.producto-agotado:hover {
+    background: var(--rosa-niebla);
+    color: var(--chocolate);
+}
+
+.agregar-desde-listado {
+    background: var(--chocolate);
+    color: var(--crema);
 }
 
 .agregar-desde-listado:hover {
-    background: transparent;
-    color: var(--verde-muse);
-}
-
-.beneficios-listado {
-    padding: 38px 7%;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    background: #f5f8f6;
-    border-top: 1px solid rgba(15, 61, 52, .15);
-    border-bottom: 1px solid rgba(15, 61, 52, .15);
-}
-
-.beneficios-listado article {
-    min-height: 65px;
-    padding: 0 35px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-right: 1px solid rgba(15, 61, 52, .22);
-}
-
-.beneficios-listado article:last-child {
-    border-right: none;
-}
-
-.beneficios-listado strong {
-    margin-bottom: 6px;
-    color: var(--verde-muse);
-    font-size: 13px;
-    text-transform: uppercase;
-}
-
-.beneficios-listado span {
-    color: #687a74;
-    font-size: 12px;
-}
-
-@media (max-width: 1100px) {
-    .grilla-listado {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 650px) {
-    .cabecera-listado h1 {
-        font-size: 45px;
-        letter-spacing: 4px;
-    }
-
-    .grilla-listado {
-        grid-template-columns: 1fr;
-    }
-
-    .producto-card-imagen {
-        height: 430px;
-    }
-
-    .beneficios-listado {
-        grid-template-columns: 1fr;
-    }
-
-    .beneficios-listado article {
-        padding: 22px 0;
-        border-right: none;
-        border-bottom: 1px solid rgba(15, 61, 52, .22);
-    }
+    background: var(--chocolate-hondo);
 }
 
 /* ===========================
@@ -267,22 +375,21 @@
 
 .producto-stock {
     width: fit-content;
-    margin: 0 auto 16px;
-    padding: 7px 12px;
+
+    margin: 0 auto 10px;
+    padding: 5px 12px;
 
     display: inline-flex;
     align-items: center;
     gap: 7px;
 
-    color: var(--verde-muse);
-    background: rgba(15, 61, 52, 0.08);
-    border: 1px solid rgba(15, 61, 52, 0.2);
-    border-radius: 999px;
+    color: var(--exito);
+    background: rgba(63, 122, 82, 0.09);
 
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
+    border-radius: var(--pildora);
+
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .producto-stock::before {
@@ -291,18 +398,13 @@
     width: 7px;
     height: 7px;
 
-    background: #4d8a63;
+    background: currentColor;
     border-radius: 50%;
 }
 
 .producto-stock.sin-stock {
-    color: #9b3b3b;
-    background: rgba(155, 59, 59, 0.08);
-    border-color: rgba(155, 59, 59, 0.22);
-}
-
-.producto-stock.sin-stock::before {
-    background: #9b3b3b;
+    color: var(--error);
+    background: rgba(163, 50, 79, 0.08);
 }
 
 /* ===========================
@@ -310,8 +412,12 @@
 =========================== */
 
 .catalogo-vacio {
+    grid-column: 1 / -1;
+
     width: 100%;
     min-height: 320px;
+
+    padding: 40px 20px;
 
     display: flex;
     flex-direction: column;
@@ -320,90 +426,150 @@
 
     text-align: center;
 
-    color: #0f3d34;
+    color: var(--chocolate);
+    background: var(--blanco);
+
+    border: 2px dashed var(--rosa-claro);
+    border-radius: var(--radio-grande);
 }
 
 .catalogo-vacio h2 {
-    margin: 0 0 12px;
+    margin: 0 0 10px;
 
-    font-family: "Cormorant Garamond", serif;
-    font-size: 48px;
+    color: var(--chocolate);
+
+    font-family: var(--fuente-titulos);
+    font-size: clamp(32px, 8vw, 46px);
     font-weight: 400;
-    letter-spacing: 2px;
-
-    color: #c8a96a;
+    line-height: 1.15;
 }
 
 .catalogo-vacio p {
     max-width: 430px;
-    margin: 0 0 24px;
+
+    margin: 0 0 22px;
+
+    color: var(--chocolate-suave);
 
     font-size: 15px;
     line-height: 1.7;
 }
 
 .catalogo-vacio a {
-    padding: 12px 24px;
+    min-height: 46px;
 
-    color: #c8a96a;
-    background: #0f3d34;
-    border: 1px solid #0f3d34;
+    padding: 12px 26px;
+
+    color: var(--crema);
+    background: var(--chocolate);
+
+    border-radius: var(--pildora);
 
     text-decoration: none;
-    text-transform: uppercase;
 
-    font-size: 11px;
-    letter-spacing: 1.5px;
+    font-size: 14px;
+    font-weight: 800;
 
-    transition: 0.3s ease;
+    transition: background 0.25s ease;
 }
 
 .catalogo-vacio a:hover {
-    color: #0f3d34;
-    background: transparent;
+    background: var(--frutilla);
+    color: var(--chocolate);
 }
 
 /* ===========================
-   LINK DE LA TARJETA
+   BENEFICIOS
 =========================== */
 
-.producto-card-link{
-    display:block;
-    text-decoration:none;
-    color:inherit;
+.beneficios-listado {
+    padding: 36px 24px;
+
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+
+    background: var(--rosa-niebla);
 }
 
-.producto-titulo-link{
+.beneficios-listado article {
+    padding: 18px 20px;
 
-    color:inherit;
-    text-decoration:none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 
-    transition:.3s ease;
+    background: var(--blanco);
+
+    border-radius: var(--radio);
+    box-shadow: var(--sombra-suave);
+}
+
+.beneficios-listado strong {
+    margin-bottom: 4px;
+
+    color: var(--chocolate);
+
+    font-size: 14px;
+    font-weight: 800;
+
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.beneficios-listado strong::before {
+    content: "♥ ";
+
+    color: var(--frutilla);
+}
+
+.beneficios-listado span {
+    color: var(--chocolate-suave);
+
+    font-size: 14px;
+}
+
+/* =========================================================
+   PANTALLAS MÁS GRANDES
+========================================================= */
+
+@media (min-width: 560px) {
+
+    .grilla-listado {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px 18px;
+    }
 
 }
 
-.producto-card:hover .producto-titulo-link{
+@media (min-width: 900px) {
 
-    color:var(--dorado-muse);
+    .cabecera-listado {
+        min-height: 300px;
+    }
+
+    .listado-productos {
+        padding: 50px 5% 100px;
+    }
+
+    .grilla-listado {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 32px 24px;
+    }
+
+    .beneficios-listado {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+
+        padding: 44px 6%;
+    }
 
 }
 
-.producto-card-link img{
+@media (min-width: 1250px) {
 
-    transition:
-        transform .6s ease,
-        filter .6s ease;
-
-}
-
-.producto-card:hover .producto-card-link img{
-
-    transform:scale(1.05);
-
-}
-
-.producto-card-link:hover{
-
-    cursor:pointer;
+    .grilla-listado {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
 
 }

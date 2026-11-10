@@ -1,9 +1,72 @@
 /* ===========================
-   CHECKOUT MUSÉ
+   CHECKOUT MUSÉ TENTACIÓN
 =========================== */
 
+
+/* =====================================================
+   ⚙ CONFIGURACIÓN DEL PEDIDO WEB (único lugar a tocar)
+   =====================================================
+
+   TOPES_PEDIDO_WEB: máximo de UNIDADES por categoría que
+   se pueden comprar online en un solo pedido.
+
+   - maxUnidades:     tope de unidades reales de esa categoría.
+   - unidadesPorItem: cuántas unidades trae cada ítem del
+                      carrito (las donas se venden en combos
+                      de 2). Si el producto en Supabase tiene
+                      `unidades_por_item`, manda ese valor.
+   - nombre:          cómo se muestra en el aviso.
+
+   Ejemplo: donas con maxUnidades 20 y unidadesPorItem 2
+   → hasta 10 combos de 2 donas.
+
+   Para cambiar un tope: modificar maxUnidades.
+   Para quitar el tope de una categoría: borrar su línea.
+   Categorías que no figuran acá: sin límite.
+   Para sumar una categoría nueva: agregar una línea con
+   la misma clave que la columna `categoria` de Supabase.
+
+   Si se supera algún tope, el checkout no deja pagar online
+   y ofrece escribir por WhatsApp o mail con el detalle.
+*/
+
+const TOPES_PEDIDO_WEB = {
+    donas: {
+        nombre: "Donas",
+        maxUnidades: 20,
+        unidadesPorItem: 2
+    },
+    cuchareables: {
+        nombre: "Cuchareables",
+        maxUnidades: 10,
+        unidadesPorItem: 1
+    }
+};
+
+/*
+    Datos de contacto para pedidos grandes.
+    whatsapp: solo números, con código de país y sin "+".
+              Ej: "5491112345678"
+*/
+
+const CONTACTO_PEDIDOS = {
+    whatsapp: "5491133491144",
+    email: "musetentacionarg@gmail.com"
+};
+
+
+/* ================================================== */
+
+/*
+    Clave del carrito en localStorage. Es la misma que usa
+    script.js. Se cambió respecto de la web anterior para
+    descartar carritos viejos.
+*/
+
+const CLAVE_CARRITO = "carritoMuseTentacion";
+
 const carritoCheckout = JSON.parse(
-    localStorage.getItem("carritoMuse")
+    localStorage.getItem(CLAVE_CARRITO)
 ) || [];
 
 const productosResumen = document.getElementById("productosResumen");
@@ -12,144 +75,30 @@ const envioCheckout = document.getElementById("envioCheckout");
 const totalCheckout = document.getElementById("totalCheckout");
 
 const formularioCheckout = document.getElementById("formularioCheckout");
+const datosEnvio = document.getElementById("datosEnvio");
 const confirmacionPedido = document.getElementById("confirmacionPedido");
-const datosTransferencia = document.getElementById("datosTransferencia");
-const confirmacionEfectivo = document.getElementById("confirmacionEfectivo");
 const numeroPedido = document.getElementById("numeroPedido");
 const mensajeError = document.getElementById("mensajeError");
 const enlaceWhatsApp = document.getElementById("enlaceWhatsApp");
 
-const provincia = document.getElementById("provincia");
-const precioCorreo = document.getElementById("precioCorreo");
-const precioAndreani = document.getElementById("precioAndreani");
+/*
+    Por ahora el envío no tiene costo fijo: retiro es gratis
+    y el envío a domicilio se coordina por WhatsApp.
+    Cuando haya tarifas, se cargan en el data-precio de cada
+    opción en checkout.html.
+*/
 
 let costoEnvioSeleccionado = 0;
 
+
 /*
-    Tarifas provisorias de prueba.
-    Más adelante pueden reemplazarse por una API real.
+    Textos de cada forma de entrega (resumen, mail del
+    pedido y WhatsApp).
 */
 
-const tarifasEnvio = {
-    caba: {
-        correo: 4500,
-        andreani: 5200
-    },
-
-    "buenos-aires": {
-        correo: 5900,
-        andreani: 6800
-    },
-
-    cordoba: {
-        correo: 8200,
-        andreani: 9600
-    },
-
-    "santa-fe": {
-        correo: 8200,
-        andreani: 9600
-    },
-
-    "entre-rios": {
-        correo: 7800,
-        andreani: 9000
-    },
-
-    mendoza: {
-        correo: 9100,
-        andreani: 10400
-    },
-
-    "san-juan": {
-        correo: 9300,
-        andreani: 10600
-    },
-
-    "san-luis": {
-        correo: 8800,
-        andreani: 10100
-    },
-
-    tucuman: {
-        correo: 9500,
-        andreani: 10900
-    },
-
-    salta: {
-        correo: 9800,
-        andreani: 11200
-    },
-
-    jujuy: {
-        correo: 9900,
-        andreani: 11400
-    },
-
-    catamarca: {
-        correo: 9500,
-        andreani: 10900
-    },
-
-    "la-rioja": {
-        correo: 9400,
-        andreani: 10800
-    },
-
-    "santiago-del-estero": {
-        correo: 9400,
-        andreani: 10800
-    },
-
-    chaco: {
-        correo: 9600,
-        andreani: 11000
-    },
-
-    corrientes: {
-        correo: 9500,
-        andreani: 10900
-    },
-
-    formosa: {
-        correo: 9900,
-        andreani: 11400
-    },
-
-    misiones: {
-        correo: 9800,
-        andreani: 11200
-    },
-
-    "la-pampa": {
-        correo: 8500,
-        andreani: 9800
-    },
-
-    neuquen: {
-        correo: 10300,
-        andreani: 11900
-    },
-
-    "rio-negro": {
-        correo: 10500,
-        andreani: 12100
-    },
-
-    chubut: {
-        correo: 11500,
-        andreani: 13200
-    },
-
-    "santa-cruz": {
-        correo: 12800,
-        andreani: 14700
-    },
-
-    "tierra-del-fuego": {
-        correo: 13900,
-        andreani: 15900
-    }
+const NOMBRES_ENVIO = {
+    retiro: "Retiro gratis en showroom (dirección por privado)",
+    domicilio: "Envío a domicilio (costo según kilómetros, a confirmar)"
 };
 
 
@@ -169,6 +118,22 @@ function formatearPrecio(precio) {
 
 
 /* ===========================
+   ESCAPAR TEXTO PARA HTML
+=========================== */
+
+function escaparHtml(texto) {
+
+    return String(texto ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+}
+
+
+/* ===========================
    CALCULAR SUBTOTAL
 =========================== */
 
@@ -179,6 +144,377 @@ function calcularSubtotal() {
             total + producto.precio * producto.cantidad,
         0
     );
+
+}
+
+
+/* ===========================
+   TOPE DE PEDIDO WEB
+=========================== */
+
+/*
+    Devuelve la categoría de un ítem del carrito.
+    Si un ítem no trae `categoria`, se intenta deducir
+    por el nombre. Si tampoco se puede, devuelve null y
+    ese ítem bloquea el pago online (ver calcularExcesosTope).
+*/
+
+function obtenerCategoriaItem(item) {
+
+    const categoria = String(item.categoria || "")
+        .trim()
+        .toLowerCase();
+
+    if (categoria) {
+        return categoria;
+    }
+
+    const nombre = String(item.nombre || "").toLowerCase();
+
+    if (nombre.includes("dona")) {
+        return "donas";
+    }
+
+    if (nombre.includes("cuchar")) {
+        return "cuchareables";
+    }
+
+    return null;
+
+}
+
+
+function obtenerUnidadesItem(item) {
+
+    const categoria = obtenerCategoriaItem(item);
+
+    const configuracion = TOPES_PEDIDO_WEB[categoria];
+
+    const unidadesPorItem =
+        Number(item.unidades_por_item) ||
+        Number(configuracion?.unidadesPorItem) ||
+        1;
+
+    return Number(item.cantidad || 0) * unidadesPorItem;
+
+}
+
+
+/*
+    Devuelve la lista de problemas que impiden pagar online:
+    - categorías que superan su tope;
+    - ítems cuya categoría no se puede saber (no se puede
+      verificar el tope, así que se coordinan por WhatsApp/mail).
+    Lista vacía = el pedido se puede pagar online.
+    Cada problema trae `mensaje` para mostrar en el aviso.
+*/
+
+function calcularExcesosTope() {
+
+    const unidadesPorCategoria = {};
+
+    const itemsSinCategoria = [];
+
+    carritoCheckout.forEach(item => {
+
+        const categoria = obtenerCategoriaItem(item);
+
+        if (!categoria) {
+            itemsSinCategoria.push(item);
+            return;
+        }
+
+        if (!TOPES_PEDIDO_WEB[categoria]) {
+            return;
+        }
+
+        unidadesPorCategoria[categoria] =
+            (unidadesPorCategoria[categoria] || 0) +
+            obtenerUnidadesItem(item);
+
+    });
+
+    const excesos = Object.entries(unidadesPorCategoria)
+        .filter(([categoria, unidades]) => {
+
+            return unidades > TOPES_PEDIDO_WEB[categoria].maxUnidades;
+
+        })
+        .map(([categoria, unidades]) => {
+
+            const nombre =
+                TOPES_PEDIDO_WEB[categoria].nombre || categoria;
+
+            const maxUnidades =
+                TOPES_PEDIDO_WEB[categoria].maxUnidades;
+
+            return {
+                categoria,
+                nombre,
+                unidades,
+                maxUnidades,
+                mensaje:
+                    `${nombre}: tenés ${unidades} unidades ` +
+                    `y el máximo online es ${maxUnidades}.`
+            };
+
+        });
+
+    itemsSinCategoria.forEach(item => {
+
+        excesos.push({
+            categoria: null,
+            nombre: item.nombre || "Producto",
+            unidades: Number(item.cantidad || 0),
+            maxUnidades: 0,
+            mensaje:
+                `${item.nombre || "Un producto"}: no pudimos verificarlo ` +
+                "para la compra online."
+        });
+
+    });
+
+    return excesos;
+
+}
+
+
+function pedidoSuperaTope() {
+
+    return calcularExcesosTope().length > 0;
+
+}
+
+
+function valorCampo(id) {
+
+    return document.getElementById(id)?.value.trim() || "";
+
+}
+
+
+/*
+    Texto con el detalle del pedido para WhatsApp / mail.
+*/
+
+function armarDetallePedidoGrande() {
+
+    const lineasProductos = carritoCheckout.map(item => {
+
+        const detalle = item.descripcion
+            ? ` (${item.descripcion})`
+            : "";
+
+        return (
+            `- ${item.cantidad} x ${item.nombre}${detalle}` +
+            ` — ${formatearPrecio(item.precio * item.cantidad)}`
+        );
+
+    });
+
+    const nombreCompleto =
+        `${valorCampo("nombre")} ${valorCampo("apellido")}`.trim();
+
+    const lineas = [
+        "Hola MUSÉ TENTACIÓN! Quiero hacer este pedido:",
+        "",
+        ...lineasProductos,
+        "",
+        `Total productos: ${formatearPrecio(calcularSubtotal())}`
+    ];
+
+    if (nombreCompleto) {
+        lineas.push(`Nombre: ${nombreCompleto}`);
+    }
+
+    if (valorCampo("telefono")) {
+        lineas.push(`Teléfono: ${valorCampo("telefono")}`);
+    }
+
+    if (valorCampo("localidad")) {
+        lineas.push(`Localidad: ${valorCampo("localidad")}`);
+    }
+
+    lineas.push("", "¿Me confirman disponibilidad y forma de pago?");
+
+    return lineas.join("\n");
+
+}
+
+
+function construirUrlWhatsApp(texto) {
+
+    if (CONTACTO_PEDIDOS.whatsapp.includes("[[")) {
+        console.warn(
+            "Falta definir CONTACTO_PEDIDOS.whatsapp en checkout.js"
+        );
+    }
+
+    return (
+        `https://wa.me/${CONTACTO_PEDIDOS.whatsapp}` +
+        `?text=${encodeURIComponent(texto)}`
+    );
+
+}
+
+
+function construirUrlMail(texto) {
+
+    const asunto = "Pedido MUSÉ TENTACIÓN";
+
+    return (
+        `mailto:${CONTACTO_PEDIDOS.email}` +
+        `?subject=${encodeURIComponent(asunto)}` +
+        `&body=${encodeURIComponent(texto)}`
+    );
+
+}
+
+
+/*
+    Muestra (u oculta) el aviso de tope y bloquea el pago.
+    Usa el contenedor #avisoTopePedido si existe en el HTML;
+    si no, lo crea arriba del formulario.
+*/
+
+function actualizarAvisoTope() {
+
+    const excesos = calcularExcesosTope();
+
+    const botonConfirmar = formularioCheckout.querySelector(
+        'button[type="submit"]'
+    );
+
+    let aviso = document.getElementById("avisoTopePedido");
+
+    if (excesos.length === 0) {
+
+        aviso?.setAttribute("hidden", "");
+
+        if (botonConfirmar) {
+            botonConfirmar.disabled = false;
+        }
+
+        return;
+
+    }
+
+    if (!aviso) {
+
+        aviso = document.createElement("section");
+        aviso.id = "avisoTopePedido";
+        formularioCheckout.before(aviso);
+
+    }
+
+    aviso.className = "aviso-provisorio aviso-tope-pedido";
+    aviso.setAttribute("role", "alert");
+    aviso.removeAttribute("hidden");
+
+    const detalleExcesos = excesos
+        .map(exceso => `<li>${escaparHtml(exceso.mensaje)}</li>`)
+        .join("");
+
+    aviso.innerHTML = `
+        <h2>Tu pedido es grande 🎉</h2>
+        <p>
+            Por la web podemos tomar pedidos chicos. Para este pedido
+            escribinos y lo coordinamos personalmente:
+        </p>
+        <ul>${detalleExcesos}</ul>
+        <div class="aviso-tope-acciones">
+            <a
+                id="avisoTopeWhatsApp"
+                class="boton-whatsapp"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer">
+                Pedir por WhatsApp
+            </a>
+            <a
+                id="avisoTopeMail"
+                class="boton-mail-pedido"
+                href="#">
+                Pedir por mail
+            </a>
+        </div>
+    `;
+
+    /*
+        Los links se arman al hacer clic, así incluyen
+        los datos que el cliente ya haya completado.
+    */
+
+    aviso
+        .querySelector("#avisoTopeWhatsApp")
+        .addEventListener("click", evento => {
+
+            evento.currentTarget.href =
+                construirUrlWhatsApp(armarDetallePedidoGrande());
+
+        });
+
+    aviso
+        .querySelector("#avisoTopeMail")
+        .addEventListener("click", evento => {
+
+            evento.currentTarget.href =
+                construirUrlMail(armarDetallePedidoGrande());
+
+        });
+
+    if (botonConfirmar) {
+        botonConfirmar.disabled = true;
+    }
+
+}
+
+
+/* ===========================
+   MERCADO PAGO (pendiente)
+=========================== */
+
+/*
+    TODO: cobro con Mercado Pago (Checkout Pro).
+
+    No se puede hacer solo desde el navegador: crear el pago
+    necesita el Access Token de Mercado Pago, que es SECRETO
+    y no puede estar en este archivo.
+
+    Plan (ver supabase/LEEME.md):
+    1. Una Supabase Edge Function "crear-preferencia" guarda
+       el Access Token como secreto.
+    2. Esta función le manda los ítems (producto_id,
+       variante_id, cantidad) y los datos del cliente.
+    3. La Edge Function vuelve a leer los precios desde la
+       base (nunca confía en los precios del navegador),
+       revisa los topes, crea la preferencia y devuelve
+       la URL de pago (init_point).
+    4. Acá redirigimos: window.location.href = init_point.
+
+    `pedido` = { codigo, items, cliente, envio, total }
+*/
+
+async function iniciarPagoMercadoPago(pedido) {
+
+    if (pedidoSuperaTope()) {
+        throw new Error("El pedido supera el tope de compra online.");
+    }
+
+    // TODO: reemplazar por la llamada a la Edge Function, ej:
+    // const { data, error } = await clienteSupabase.functions.invoke(
+    //     "crear-preferencia",
+    //     { body: pedido }
+    // );
+    // if (error) throw error;
+    // window.location.href = data.init_point;
+
+    console.warn(
+        "Mercado Pago todavía no está conectado.",
+        pedido
+    );
+
+    throw new Error("Mercado Pago todavía no está disponible.");
 
 }
 
@@ -210,18 +546,25 @@ function dibujarResumen() {
         articulo.innerHTML = `
 
             <img
-                src="${producto.imagen}"
-                alt="${producto.nombre}">
+                src="${escaparHtml(producto.imagen)}"
+                alt="${escaparHtml(producto.nombre)}">
 
             <div>
 
                 <h3>
-                    ${producto.nombre}
+                    ${escaparHtml(producto.nombre)}
                 </h3>
 
                 <p>
-                    ${producto.descripcion || ""}
-                    · Cantidad: ${producto.cantidad}
+                    ${
+                        [
+                            producto.descripcion,
+                            `Cantidad: ${producto.cantidad}`
+                        ]
+                            .filter(Boolean)
+                            .map(escaparHtml)
+                            .join(" · ")
+                    }
                 </p>
 
             </div>
@@ -247,6 +590,28 @@ function dibujarResumen() {
    ACTUALIZAR TOTALES
 =========================== */
 
+function obtenerEnvioElegido() {
+
+    return document.querySelector(
+        'input[name="envio"]:checked'
+    )?.value || "retiro";
+
+}
+
+
+function textoCostoEnvio() {
+
+    if (costoEnvioSeleccionado > 0) {
+        return formatearPrecio(costoEnvioSeleccionado);
+    }
+
+    return obtenerEnvioElegido() === "domicilio"
+        ? "Según km"
+        : "Gratis";
+
+}
+
+
 function actualizarTotales() {
 
     const subtotal = calcularSubtotal();
@@ -258,71 +623,10 @@ function actualizarTotales() {
         formatearPrecio(subtotal);
 
     envioCheckout.textContent =
-        costoEnvioSeleccionado === 0
-            ? "Gratis"
-            : formatearPrecio(costoEnvioSeleccionado);
+        textoCostoEnvio();
 
     totalCheckout.textContent =
         formatearPrecio(total);
-
-}
-
-
-/* ===========================
-   ACTUALIZAR TARIFAS
-=========================== */
-
-function actualizarTarifas() {
-
-    const seleccionProvincia =
-        provincia.value;
-
-    const tarifas =
-        tarifasEnvio[seleccionProvincia];
-
-    const radioCorreo = document.querySelector(
-        'input[name="envio"][value="correo"]'
-    );
-
-    const radioAndreani = document.querySelector(
-        'input[name="envio"][value="andreani"]'
-    );
-
-    if (!tarifas) {
-
-        precioCorreo.textContent =
-            "Elegí provincia";
-
-        precioAndreani.textContent =
-            "Elegí provincia";
-
-        radioCorreo.dataset.precio = "0";
-        radioAndreani.dataset.precio = "0";
-
-    } else {
-
-        precioCorreo.textContent =
-            formatearPrecio(tarifas.correo);
-
-        precioAndreani.textContent =
-            formatearPrecio(tarifas.andreani);
-
-        radioCorreo.dataset.precio =
-            String(tarifas.correo);
-
-        radioAndreani.dataset.precio =
-            String(tarifas.andreani);
-
-    }
-
-    const envioActual = document.querySelector(
-        'input[name="envio"]:checked'
-    );
-
-    costoEnvioSeleccionado =
-        Number(envioActual?.dataset.precio || 0);
-
-    actualizarTotales();
 
 }
 
@@ -352,18 +656,25 @@ function actualizarTarjetasSeleccionadas(nombreGrupo) {
 
 
 /* ===========================
-   CAMBIO DE PROVINCIA
+   CAMBIO DE ENTREGA
 =========================== */
 
-provincia.addEventListener(
-    "change",
-    actualizarTarifas
-);
+/*
+    Los campos de dirección solo se muestran
+    si eligen envío a domicilio.
+*/
 
+function actualizarCamposEnvio() {
 
-/* ===========================
-   CAMBIO DE ENVÍO
-=========================== */
+    if (!datosEnvio) {
+        return;
+    }
+
+    datosEnvio.hidden =
+        obtenerEnvioElegido() !== "domicilio";
+
+}
+
 
 document
     .querySelectorAll('input[name="envio"]')
@@ -376,41 +687,9 @@ document
 
             actualizarTarjetasSeleccionadas("envio");
 
+            actualizarCamposEnvio();
+
             actualizarTotales();
-
-            const efectivo = document.querySelector(
-                'input[name="pago"][value="efectivo"]'
-            );
-
-            if (
-                input.value !== "retiro" &&
-                efectivo.checked
-            ) {
-
-                document.querySelector(
-                    'input[name="pago"][value="transferencia"]'
-                ).checked = true;
-
-                actualizarTarjetasSeleccionadas("pago");
-
-            }
-
-        });
-
-    });
-
-
-/* ===========================
-   CAMBIO DE PAGO
-=========================== */
-
-document
-    .querySelectorAll('input[name="pago"]')
-    .forEach(input => {
-
-        input.addEventListener("change", () => {
-
-            actualizarTarjetasSeleccionadas("pago");
 
         });
 
@@ -438,23 +717,20 @@ function validarFormulario() {
         "email",
         "nombre",
         "apellido",
-        "telefono",
-        "provincia",
-        "codigoPostal",
-        "localidad",
-        "calle",
-        "numero"
+        "telefono"
     ];
 
+    if (obtenerEnvioElegido() === "domicilio") {
+
+        camposObligatorios.push(
+            "direccion",
+            "localidad"
+        );
+
+    }
+
     const campoIncompleto =
-        camposObligatorios.find(id => {
-
-            const campo =
-                document.getElementById(id);
-
-            return !campo.value.trim();
-
-        });
+        camposObligatorios.find(id => !valorCampo(id));
 
     if (campoIncompleto) {
 
@@ -463,41 +739,49 @@ function validarFormulario() {
 
         document
             .getElementById(campoIncompleto)
-            .focus();
+            ?.focus();
 
         return false;
 
     }
 
-    const envio = document.querySelector(
-        'input[name="envio"]:checked'
-    );
+    /*
+        Email: algo@algo.algo
+    */
 
-    const pago = document.querySelector(
-        'input[name="pago"]:checked'
-    );
+    const formatoEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-    if (
-        envio.value !== "retiro" &&
-        costoEnvioSeleccionado === 0
-    ) {
+    if (!formatoEmail.test(valorCampo("email"))) {
 
         mensajeError.textContent =
-            "Elegí una provincia para calcular el envío.";
+            "Revisá el correo electrónico: tiene que tener el formato nombre@ejemplo.com.";
 
-        provincia.focus();
+        document.getElementById("email")?.focus();
 
         return false;
 
     }
 
+    /*
+        Teléfono: se aceptan espacios, guiones, paréntesis
+        y "+". Tiene que tener entre 8 y 15 dígitos
+        (ej. 11 1234 5678 o +54 9 11 1234-5678).
+    */
+
+    const telefono = valorCampo("telefono");
+
+    const digitosTelefono = telefono.replace(/\D/g, "");
+
     if (
-        pago.value === "efectivo" &&
-        envio.value !== "retiro"
+        !/^[\d\s()+-]+$/.test(telefono) ||
+        digitosTelefono.length < 8 ||
+        digitosTelefono.length > 15
     ) {
 
         mensajeError.textContent =
-            "El efectivo solo está disponible con retiro en showroom.";
+            "Revisá el teléfono: escribilo con código de área, por ejemplo 11 1234 5678.";
+
+        document.getElementById("telefono")?.focus();
 
         return false;
 
@@ -525,14 +809,10 @@ function generarNumeroPedido() {
         1000 + Math.random() * 9000
     );
 
-    return `MUSE-${parteFecha}-${aleatorio}`;
+    return `MT-${parteFecha}-${aleatorio}`;
 
 }
 
-
-/* ===========================
-   CONFIRMAR PEDIDO
-=========================== */
 
 /* ===========================
    ENVIAR PEDIDO A FORMSPREE
@@ -573,6 +853,31 @@ async function enviarPedidoAFormspree(datosPedido) {
 
 }
 
+
+/* ===========================
+   DETALLE DEL PEDIDO EN TEXTO
+=========================== */
+
+function armarDetalleProductos() {
+
+    return carritoCheckout
+        .map(producto => {
+
+            const detalle = producto.descripcion
+                ? ` (${producto.descripcion})`
+                : "";
+
+            return (
+                `${producto.cantidad} x ${producto.nombre}${detalle}` +
+                ` — ${formatearPrecio(producto.precio * producto.cantidad)}`
+            );
+
+        })
+        .join("\n");
+
+}
+
+
 /* ===========================
    CONFIRMAR Y ENVIAR PEDIDO
 =========================== */
@@ -582,6 +887,22 @@ formularioCheckout.addEventListener(
     async evento => {
 
         evento.preventDefault();
+
+        if (pedidoSuperaTope()) {
+
+            actualizarAvisoTope();
+
+            mensajeError.textContent =
+                "Este pedido supera el máximo de compra online. " +
+                "Escribinos por WhatsApp o mail para coordinarlo.";
+
+            document
+                .getElementById("avisoTopePedido")
+                ?.scrollIntoView({ behavior: "smooth" });
+
+            return;
+
+        }
 
         if (!validarFormulario()) {
             return;
@@ -596,231 +917,135 @@ formularioCheckout.addEventListener(
 
         mensajeError.textContent = "";
 
-        const pedido = generarNumeroPedido();
+        const codigoPedido = generarNumeroPedido();
 
-        const pagoSeleccionado = document.querySelector(
-            'input[name="pago"]:checked'
-        );
-
-        const envioSeleccionado = document.querySelector(
-            'input[name="envio"]:checked'
-        );
-
-        const pago = pagoSeleccionado.value;
-        const envio = envioSeleccionado.value;
+        const envio = obtenerEnvioElegido();
 
         const subtotal = calcularSubtotal();
 
         const total =
             subtotal + costoEnvioSeleccionado;
 
-        const nombre = document
-            .getElementById("nombre")
-            .value
-            .trim();
+        const nombre = valorCampo("nombre");
+        const apellido = valorCampo("apellido");
+        const email = valorCampo("email");
+        const telefono = valorCampo("telefono");
+        const direccion = valorCampo("direccion");
+        const localidad = valorCampo("localidad");
+        const indicaciones = valorCampo("indicaciones");
 
-        const apellido = document
-            .getElementById("apellido")
-            .value
-            .trim();
-
-        const email = document
-            .getElementById("email")
-            .value
-            .trim();
-
-        const telefono = document
-            .getElementById("telefono")
-            .value
-            .trim();
-
-        const provinciaSeleccionada =
-            provincia.options[provincia.selectedIndex].text;
-
-        const codigoPostal = document
-            .getElementById("codigoPostal")
-            .value
-            .trim();
-
-        const localidad = document
-            .getElementById("localidad")
-            .value
-            .trim();
-
-        const calle = document
-            .getElementById("calle")
-            .value
-            .trim();
-
-        const numero = document
-            .getElementById("numero")
-            .value
-            .trim();
-
-        const departamento = document
-            .getElementById("departamento")
-            .value
-            .trim();
-
-        const indicaciones = document
-            .getElementById("indicaciones")
-            .value
-            .trim();
-
-        const nombreEnvio = {
-            retiro: "Retiro en Paraguay 1275",
-            correo: "Correo Argentino",
-            andreani: "Andreani"
-        };
-
-        const nombrePago = {
-            transferencia: "Transferencia bancaria",
-            efectivo: "Efectivo al retirar"
-        };
-
-        /*
-            Convertimos los productos en un texto fácil
-            de leer dentro del correo.
-        */
-
-        const detalleProductos = carritoCheckout
-            .map(producto => {
-
-                const totalProducto =
-                    producto.precio * producto.cantidad;
-
-                return (
-                    `${producto.cantidad} x ${producto.nombre}` +
-                    ` — ${formatearPrecio(totalProducto)}`
-                );
-
-            })
-            .join("\n");
+        const detalleProductos = armarDetalleProductos();
 
         const direccionCompleta =
-            envio === "retiro"
-                ? "Retiro en Paraguay 1275, CABA"
-                : (
-                    `${calle} ${numero}` +
-                    `${departamento
-                        ? `, departamento ${departamento}`
-                        : ""
-                    }` +
-                    `, ${localidad}, ${provinciaSeleccionada}` +
-                    `, CP ${codigoPostal}`
-                );
+            envio === "domicilio"
+                ? `${direccion}, ${localidad}`
+                : "Retira en el punto de retiro";
 
         /*
-            Estos son los datos que vas a recibir
-            por Formspree.
+            Datos que llegan por mail vía Formspree.
         */
 
         const datosPedido = {
 
             _subject:
-                `Nuevo pedido MUSÉ — ${pedido}`,
+                `Nuevo pedido MUSÉ TENTACIÓN — ${codigoPedido}`,
 
-            codigo_pedido:
-                pedido,
+            codigo_pedido: codigoPedido,
 
-            cliente:
-                `${nombre} ${apellido}`,
+            cliente: `${nombre} ${apellido}`,
 
-            email_cliente:
-                email,
+            email_cliente: email,
 
-            telefono_cliente:
-                telefono,
+            telefono_cliente: telefono,
 
-            productos:
-                detalleProductos,
+            productos: detalleProductos,
 
-            subtotal:
-                formatearPrecio(subtotal),
+            subtotal: formatearPrecio(subtotal),
 
-            metodo_envio:
-                nombreEnvio[envio],
+            metodo_envio: NOMBRES_ENVIO[envio],
 
-            costo_envio:
-                costoEnvioSeleccionado === 0
-                    ? "Gratis"
-                    : formatearPrecio(costoEnvioSeleccionado),
+            costo_envio: textoCostoEnvio(),
 
-            total:
-                formatearPrecio(total),
+            total: formatearPrecio(total),
 
             metodo_pago:
-                nombrePago[pago],
+                "Mercado Pago (enviar link de pago al cliente)",
 
-            direccion:
-                direccionCompleta,
+            direccion: direccionCompleta,
 
-            indicaciones:
-                indicaciones || "Sin indicaciones",
+            indicaciones: indicaciones || "Sin indicaciones",
 
-            fecha:
-                new Date().toLocaleString(
-                    "es-AR"
-                )
+            fecha: new Date().toLocaleString("es-AR")
 
         };
+
+        /*
+            Gancho de Mercado Pago (pendiente).
+            Cuando exista la Edge Function, acá se llama:
+
+            await iniciarPagoMercadoPago({
+                codigo: codigoPedido,
+                items: carritoCheckout,
+                cliente: { nombre, apellido, email, telefono },
+                envio,
+                total
+            });
+            return;
+
+            Mientras tanto, el pedido se registra por Formspree
+            y el link de pago se envía a mano.
+        */
 
         try {
 
             /*
-                Primero lo enviamos a Formspree.
-                Si falla, no borramos el carrito.
+                Si Formspree falla, no borramos el carrito.
             */
 
-            await enviarPedidoAFormspree(
-                datosPedido
-            );
+            await enviarPedidoAFormspree(datosPedido);
 
-            formularioCheckout.style.display =
-                "none";
+            formularioCheckout.style.display = "none";
 
-            confirmacionPedido.classList.add(
-                "visible"
-            );
+            document
+                .getElementById("avisoTopePedido")
+                ?.setAttribute("hidden", "");
 
-            numeroPedido.textContent =
-                `Número de pedido: ${pedido} · ` +
-                `Total: ${formatearPrecio(total)}`;
+            confirmacionPedido?.classList.add("visible");
 
-            datosTransferencia.classList.toggle(
-                "visible",
-                pago === "transferencia"
-            );
+            if (numeroPedido) {
 
-            confirmacionEfectivo.classList.toggle(
-                "visible",
-                pago === "efectivo"
-            );
+                numeroPedido.textContent =
+                    `Número de pedido: ${codigoPedido} · ` +
+                    `Total: ${formatearPrecio(total)}`;
 
-            const textoWhatsapp = encodeURIComponent(
+            }
 
-                `Hola MUSÉ. Realicé el pedido ${pedido}.\n\n` +
-
-                `Cliente: ${nombre} ${apellido}\n` +
-
+            const textoWhatsapp =
+                `Hola MUSÉ TENTACIÓN! Hice el pedido ${codigoPedido}.\n\n` +
+                `${detalleProductos}\n\n` +
                 `Total: ${formatearPrecio(total)}\n` +
+                `Entrega: ${NOMBRES_ENVIO[envio]}\n` +
+                (
+                    envio === "domicilio"
+                        ? `Dirección: ${direccionCompleta}\n`
+                        : ""
+                ) +
+                `Cliente: ${nombre} ${apellido}\n\n` +
+                "Quedo a la espera del link de pago de Mercado Pago.";
 
-                `Entrega: ${nombreEnvio[envio]}\n\n` +
+            if (enlaceWhatsApp) {
 
-                `Adjunto el comprobante de transferencia.`
+                enlaceWhatsApp.href =
+                    construirUrlWhatsApp(textoWhatsapp);
 
-            );
-
-            enlaceWhatsApp.href =
-                "https://wa.me/5491133491144" +
-                `?text=${textoWhatsapp}`;
+            }
 
             localStorage.setItem(
                 "ultimoPedidoMuse",
                 JSON.stringify({
-                    pedido,
+                    pedido: codigoPedido,
                     total,
-                    pago,
+                    pago: "mercadopago",
                     envio,
                     cliente: `${nombre} ${apellido}`,
                     fecha: new Date().toISOString()
@@ -832,9 +1057,7 @@ formularioCheckout.addEventListener(
                 de que Formspree confirme el envío.
             */
 
-            localStorage.removeItem(
-                "carritoMuse"
-            );
+            localStorage.removeItem(CLAVE_CARRITO);
 
             window.scrollTo({
                 top: 0,
@@ -859,12 +1082,17 @@ formularioCheckout.addEventListener(
     }
 );
 
+
 /* ===========================
    INICIALIZAR
 =========================== */
 
 dibujarResumen();
 
+actualizarAvisoTope();
+
 actualizarTarjetasSeleccionadas("envio");
 
 actualizarTarjetasSeleccionadas("pago");
+
+actualizarCamposEnvio();

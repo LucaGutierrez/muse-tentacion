@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="Postres cuchareables">
+  <defs>
+    <radialGradient id="fondo2" cx="50%" cy="40%" r="75%">
+      <stop offset="0" stop-color="#FDF3EA"/>
+      <stop offset="1" stop-color="#F3D9C8"/>
+    </radialGradient>
+    <linearGradient id="vaso" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity=".6"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#fondo2)"/>
+  <path d="M0 0h800v80c-50 0-70 60-120 60s-70-40-130-40-60 90-130 90-70-70-130-70-70 50-130 50S30 110 0 110z" fill="#EF8199"/>
+  <g transform="translate(400 560)">
+    <ellipse cx="0" cy="250" rx="230" ry="30" fill="#55241A" opacity=".15"/>
+    <clipPath id="copa"><path d="M-190 -230h380l-40 470h-300z"/></clipPath>
+    <g clip-path="url(#copa)">
+      <rect x="-200" y="110" width="400" height="140" fill="#55241A"/>
+      <path d="M-200 110c40-20 80 15 120 0s80-20 120 0 80 15 160-5v-50h-400z" fill="#55241A"/>
+      <rect x="-200" y="20" width="400" height="95" fill="#FDF3EA"/>
+      <path d="M-200 20c50 20 100-15 150 0s100 20 150 0 70-15 100 0v-80h-400z" fill="#EF8199"/>
+      <rect x="-200" y="-110" width="400" height="80" fill="#EF8199"/>
+      <rect x="-200" y="-150" width="400" height="45" fill="#FBB3C1"/>
+    </g>
+    <path d="M-190 -230h380l-40 470h-300z" fill="url(#vaso)" stroke="#55241A" stroke-opacity=".25" stroke-width="5"/>
+    <path d="M-170 -150c30-60 90-90 170-90s140 30 170 90c-60 20-110 10-170 10s-110 10-170-10z" fill="#FDF3EA"/>
+    <path d="M-120 -170c30 30 70 20 90-10 15 25 60 30 80 0 20 25 60 20 70-10" fill="none" stroke="#55241A" stroke-width="14" stroke-linecap="round"/>
+    <g transform="translate(10 -230)">
+      <path d="M-55 0c0-50 30-85 55-85s55 35 55 85c0 30-25 50-55 50s-55-20-55-50z" fill="#E2455F"/>
+      <path d="M-30 -80c10-20 50-20 60 0-15 10-45 10-60 0z" fill="#5E9E52"/>
+      <g fill="#FDF3EA"><circle cx="-20" cy="-20" r="4"/><circle cx="15" cy="-35" r="4"/><circle cx="25" cy="5" r="4"/><circle cx="-25" cy="15" r="4"/></g>
+    </g>
+    <g transform="translate(150 -320) rotate(25)">
+      <rect x="-14" y="0" width="28" height="330" rx="14" fill="#C9A27A"/>
+      <ellipse cx="0" cy="-10" rx="42" ry="60" fill="#C9A27A"/>
+    </g>
+  </g>
+  <g fill="#55241A" opacity=".75">
+    <path d="M110 300c0-14 20-14 20 0 0-14 20-14 20 0 0 16-20 25-20 31 0-6-20-15-20-31z"/>
+    <path d="M650 860c0-18 26-18 26 0 0-18 26-18 26 0 0 20-26 32-26 40 0-8-26-20-26-40z"/>
+  </g>
+</svg>

@@ -8,7 +8,13 @@
         name="viewport"
         content="width=device-width, initial-scale=1.0">
 
-    <title>Producto | MUSÉ</title>
+    <title>Producto | Musé Tentación</title>
+
+    <link rel="icon" type="image/svg+xml" href="imagenes web/logo-muse-tentacion.svg">
+
+    <meta
+        name="description"
+        content="Conocé esta tentación de Musé Tentación: donas de chocolate con frutas en combos x2 y cuchareables.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
 
@@ -18,7 +24,7 @@
         crossorigin>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:wght@300;400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Leckerli+One&family=Nunito:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
@@ -66,9 +72,8 @@
             <div class="producto-informacion">
 
                 <p
-                    class="producto-categoria"
-                    id="categoriaProducto">
-                </p>
+                    class="producto-categoria oculto"
+                    id="categoriaProducto"></p>
 
                 <h1 id="nombreProducto">
                     Cargando producto...
@@ -90,7 +95,7 @@
                 </p>
 
 
-                <!-- COLOR -->
+                <!-- VARIEDAD (columna "color" de las variantes) -->
 
                 <div
                     class="producto-opcion"
@@ -98,10 +103,10 @@
 
                     <div class="producto-opcion-encabezado">
 
-                        <span>Color</span>
+                        <span>Variedad</span>
 
                         <strong id="colorSeleccionado">
-                            Seleccioná un color
+                            Seleccioná una variedad
                         </strong>
 
                     </div>
@@ -114,7 +119,7 @@
                 </div>
 
 
-                <!-- TALLE -->
+                <!-- TAMAÑO (columna "talle" de las variantes) -->
 
                 <div
                     class="producto-opcion"
@@ -122,10 +127,10 @@
 
                     <div class="producto-opcion-encabezado">
 
-                        <span>Talle</span>
+                        <span>Tamaño</span>
 
                         <strong id="talleSeleccionado">
-                            Seleccioná un talle
+                            Seleccioná un tamaño
                         </strong>
 
                     </div>
@@ -153,7 +158,7 @@
 
                 <div class="producto-cantidad">
 
-                    <span>Cantidad</span>
+                    <span id="etiquetaCantidad">Cantidad</span>
 
                     <div class="selector-cantidad">
 
@@ -184,6 +189,13 @@
                 </div>
 
 
+                <!-- AVISO DE TOPE POR PEDIDO WEB (lo completa producto.js) -->
+
+                <p
+                    class="producto-aviso-tope oculto"
+                    id="avisoTopeProducto"></p>
+
+
                 <!-- AGREGAR AL CARRITO -->
 
                 <button
@@ -201,12 +213,23 @@
 
                 <div class="producto-datos">
 
-                    <div>
+                    <div
+                        class="oculto"
+                        id="bloqueIngredientes">
 
-                        <span>Material</span>
+                        <span>Ingredientes</span>
 
-                        <strong id="datoMaterialProducto">
-                        </strong>
+                        <strong id="ingredientesProducto"></strong>
+
+                    </div>
+
+                    <div
+                        class="oculto"
+                        id="bloqueAlergenos">
+
+                        <span>Alérgenos</span>
+
+                        <strong id="alergenosProducto"></strong>
 
                     </div>
 
@@ -384,12 +407,13 @@
     <!-- JAVASCRIPT -->
 
     <script src="componentes.js"></script>
+    <script src="navbar-scroll.js" defer></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 
     <script src="supabase.js"></script>
 
-    <script src="script.js"></script>
+    <script src="script.js" data-script-principal="true"></script>
 
     <script src="producto.js"></script>
 

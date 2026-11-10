@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="Próximamente: nuevos dulces">
+  <rect width="800" height="1000" fill="#55241A"/>
+  <path d="M0 0h800v100c-60 0-70 70-130 70s-60-50-120-50-70 110-140 110-60-80-130-80-80 60-140 60S40 130 0 130z" fill="#FBB3C1"/>
+  <g transform="translate(400 540)">
+    <path d="M-160 -60h320l-30 230h-260z" fill="#7A3A26" stroke="#EF8199" stroke-width="8" stroke-linejoin="round"/>
+    <rect x="-180" y="-110" width="360" height="60" rx="12" fill="#EF8199"/>
+    <rect x="-22" y="-110" width="44" height="280" fill="#FBB3C1"/>
+    <path d="M0 -110c-40-80-130-80-120-20 6 40 80 30 120 20zM0 -110c40-80 130-80 120-20-6 40-80 30-120 20z" fill="#FBB3C1" stroke="#EF8199" stroke-width="6"/>
+    <text x="0" y="40" text-anchor="middle" font-family="Georgia, serif" font-size="150" font-weight="bold" fill="#FDF3EA" opacity=".9">?</text>
+  </g>
+  <g fill="#EF8199">
+    <path d="M140 260c0-14 20-14 20 0 0-14 20-14 20 0 0 16-20 25-20 31 0-6-20-15-20-31z"/>
+    <path d="M620 330c0-18 26-18 26 0 0-18 26-18 26 0 0 20-26 32-26 40 0-8-26-20-26-40z"/>
+    <path d="M600 840c0-14 20-14 20 0 0-14 20-14 20 0 0 16-20 25-20 31 0-6-20-15-20-31z"/>
+  </g>
+  <g fill="#FDF3EA" opacity=".6">
+    <circle cx="200" cy="820" r="6"/><circle cx="680" cy="600" r="5"/><circle cx="110" cy="560" r="5"/><circle cx="520" cy="250" r="4"/>
+  </g>
+</svg>

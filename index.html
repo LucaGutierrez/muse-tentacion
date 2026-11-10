@@ -8,7 +8,13 @@
         name="viewport"
         content="width=device-width, initial-scale=1.0">
 
-    <title>MUSÉ</title>
+    <title>Musé Tentación | Postres • Chocolates • Antojos</title>
+
+    <link rel="icon" type="image/svg+xml" href="imagenes web/logo-muse-tentacion.svg">
+
+    <meta
+        name="description"
+        content="Musé Tentación: postres, chocolates y antojos. Donas de chocolate con frutas, cuchareables y más para darte un gusto. Pedí online y pagá con Mercado Pago.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
 
@@ -18,7 +24,7 @@
         crossorigin>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Cormorant+Garamond:wght@300;400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Leckerli+One&family=Nunito:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
@@ -36,7 +42,9 @@
 
         <h1>MUSÉ</h1>
 
-        <p>JEWELRY</p>
+        <p>TENTACIÓN</p>
+
+        <p>Postres • Chocolates • Antojos</p>
 
     </section>
 
@@ -47,48 +55,50 @@
 
    <div id="navbarCompartido"></div>
 
-    
+
 
 
     <!-- ===========================
-         SEGUNDA PANTALLA: MEN / WOMEN
+         SEGUNDA PANTALLA: PRODUCTOS DESTACADOS
     ============================ -->
 
     <section class="contenido">
 
 
-        <!-- HOMBRE -->
+        <!-- DONAS -->
 
         <a
-            href="catalogo.html?genero=hombre"
-            class="categoria hombre">
+            href="catalogo.html?categoria=donas"
+            class="categoria">
 
+            <!-- Ilustración provisoria: reemplazar por foto real de donas de chocolate con frutas (portada) -->
             <img
-                src="imagenes web/luca joya.jpeg"
-                alt="Colección para hombre">
+                src="imagenes web/donas.svg"
+                alt="Donas de chocolate con frutas">
 
             <div class="overlay">
 
-                <h2>MEN</h2>
+                <h2>DONAS</h2>
 
             </div>
 
         </a>
 
 
-        <!-- MUJER -->
+        <!-- CUCHAREABLES -->
 
         <a
-            href="catalogo.html?genero=mujer"
-            class="categoria mujer">
+            href="catalogo.html?categoria=cuchareables"
+            class="categoria">
 
+            <!-- Ilustración provisoria: reemplazar por foto real de cuchareables (portada) -->
             <img
-                src="imagenes web/sofia joya.jpeg"
-                alt="Colección para mujer">
+                src="imagenes web/cuchareables.svg"
+                alt="Cuchareables">
 
             <div class="overlay">
 
-                <h2>WOMEN</h2>
+                <h2>CUCHAREABLES</h2>
 
             </div>
 
@@ -106,7 +116,7 @@
         <div class="catalogo-encabezado">
 
             <p>
-                EXPLORÁ NUESTRAS COLECCIONES
+                ELEGÍ TU TENTACIÓN
             </p>
 
             <h2>
@@ -134,22 +144,23 @@
                 id="carruselCatalogo">
 
 
-                <!-- ARITOS -->
+                <!-- DONAS -->
 
                 <a
-                    href="catalogo.html?categoria=aritos"
+                    href="catalogo.html?categoria=donas"
                     class="tarjeta-catalogo">
 
+                    <!-- Ilustración provisoria: reemplazar por foto real de donas de chocolate con frutas (tarjeta de categoría) -->
                     <img
-                        src="imagenes web/aros-catalogo.jpeg"
-                        alt="Colección de aritos">
+                        src="imagenes web/donas.svg"
+                        alt="Donas de chocolate con frutas">
 
                     <div class="tarjeta-texto">
 
-                        <h3>ARITOS</h3>
+                        <h3>DONAS DE CHOCOLATE CON FRUTAS</h3>
 
                         <span>
-                            Ver colección
+                            Combos x2 · hasta 10 combos por pedido web
                         </span>
 
                     </div>
@@ -157,22 +168,23 @@
                 </a>
 
 
-                <!-- COLLARES -->
+                <!-- CUCHAREABLES -->
 
                 <a
-                    href="catalogo.html?categoria=collares"
+                    href="catalogo.html?categoria=cuchareables"
                     class="tarjeta-catalogo">
 
+                    <!-- Ilustración provisoria: reemplazar por foto real de cuchareables (tarjeta de categoría) -->
                     <img
-                        src="imagenes web/collares-catalogo.jpeg"
-                        alt="Colección de collares">
+                        src="imagenes web/cuchareables.svg"
+                        alt="Cuchareables">
 
                     <div class="tarjeta-texto">
 
-                        <h3>COLLARES</h3>
+                        <h3>CUCHAREABLES</h3>
 
                         <span>
-                            Ver colección
+                            Hasta 10 por pedido web
                         </span>
 
                     </div>
@@ -180,73 +192,29 @@
                 </a>
 
 
-                <!-- PULSERAS -->
+                <!-- PRÓXIMAMENTE (no clickeable) -->
 
-                <a
-                    href="catalogo.html?categoria=pulseras"
-                    class="tarjeta-catalogo">
+                <div
+                    id="proximamente"
+                    class="tarjeta-catalogo"
+                    aria-disabled="true">
 
+                    <!-- Ilustración provisoria: reemplazar por foto real o imagen para "Próximamente" -->
                     <img
-                        src="imagenes web/pulseras-catalogo.jpeg"
-                        alt="Colección de pulseras">
+                        src="imagenes web/proximamente.svg"
+                        alt="Próximamente, nuevas tentaciones">
 
                     <div class="tarjeta-texto">
 
-                        <h3>PULSERAS</h3>
+                        <h3>PRÓXIMAMENTE</h3>
 
                         <span>
-                            Ver colección
+                            Estamos preparando nuevas tentaciones
                         </span>
 
                     </div>
 
-                </a>
-
-
-                <!-- ANILLOS -->
-
-                <a
-                    href="catalogo.html?categoria=anillos"
-                    class="tarjeta-catalogo">
-
-                    <img
-                        src="imagenes web/anillos-catalogo.jpeg"
-                        alt="Colección de anillos">
-
-                    <div class="tarjeta-texto">
-
-                        <h3>ANILLOS</h3>
-
-                        <span>
-                            Ver colección
-                        </span>
-
-                    </div>
-
-                </a>
-
-
-                <!-- DIJES -->
-
-                <a
-                    href="catalogo.html?categoria=dijes"
-                    class="tarjeta-catalogo">
-
-                    <img
-                        src="imagenes web/dijes-catalogo.jpeg"
-                        alt="Colección de dijes">
-
-                    <div class="tarjeta-texto">
-
-                        <h3>DIJES</h3>
-
-                        <span>
-                            Ver colección
-                        </span>
-
-                    </div>
-
-                </a>
+                </div>
 
             </div>
 
@@ -428,6 +396,9 @@
     ============================ -->
 
    <script src="componentes.js"></script>
+   <script src="navbar-scroll.js" defer></script>
+
+   <script src="animaciones.js" defer></script>
 
 </body>
 

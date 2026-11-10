@@ -1,5 +1,5 @@
 /* ===========================
-   CATÁLOGO MUSÉ + SUPABASE
+   CATÁLOGO MUSÉ TENTACIÓN + SUPABASE
 =========================== */
 
 const parametrosCatalogo =
@@ -7,10 +7,6 @@ const parametrosCatalogo =
 
 const categoriaActual =
     parametrosCatalogo.get("categoria");
-
-const generoActual =
-    parametrosCatalogo.get("genero");
-
 
 const tituloCatalogo =
     document.getElementById("tituloCatalogo");
@@ -29,11 +25,19 @@ const ordenProductos =
 
 
 const nombresCategorias = {
-    collares: "Collares",
-    pulseras: "Pulseras",
-    dijes: "Dijes",
-    anillos: "Anillos",
-    aritos: "Aritos"
+    donas: "Donas de chocolate con frutas",
+    cuchareables: "Cuchareables"
+};
+
+
+/*
+    Etiqueta corta que se muestra sobre la foto
+    de cada tarjeta, según la categoría.
+*/
+
+const etiquetasCategorias = {
+    donas: "Combo x2",
+    cuchareables: "Cuchareable"
 };
 
 
@@ -63,25 +67,6 @@ function obtenerTituloCatalogo() {
 
     const nombreCategoria =
         nombresCategorias[categoriaActual];
-
-    if (generoActual && categoriaActual) {
-
-        const nombreGenero =
-            generoActual === "hombre"
-                ? "Hombre"
-                : "Mujer";
-
-        return `${nombreCategoria} para ${nombreGenero}`;
-
-    }
-
-    if (generoActual === "hombre") {
-        return "Hombre";
-    }
-
-    if (generoActual === "mujer") {
-        return "Mujer";
-    }
 
     if (categoriaActual) {
         return nombreCategoria || "Productos";
@@ -135,15 +120,13 @@ function crearTarjetaProducto(producto) {
 const hayStock =
     stockReal > 0;
 
-    let textoGenero = "Unisex";
+    const textoEtiqueta =
+        etiquetasCategorias[producto.categoria] || "Musé Tentación";
 
-    if (producto.genero === "hombre") {
-        textoGenero = "Hombre";
-    }
-
-    if (producto.genero === "mujer") {
-        textoGenero = "Mujer";
-    }
+    const textoUnidad =
+        producto.categoria === "donas"
+            ? "combos disponibles"
+            : "unidades disponibles";
 
 
     tarjeta.innerHTML = `
@@ -155,7 +138,7 @@ const hayStock =
     <div class="producto-card-imagen">
 
         <span class="producto-card-etiqueta">
-            ${textoGenero}
+            ${textoEtiqueta}
         </span>
 
         <img
@@ -197,7 +180,7 @@ const hayStock =
 
         ${
             hayStock
-                ? `${stockReal} unidades disponibles`
+                ? `${stockReal} ${textoUnidad}`
                 : "Sin stock"
         }
 
@@ -257,11 +240,11 @@ function mostrarProductos(productos) {
             <div class="catalogo-vacio">
 
                 <h2>
-                     Muy pronto
+                    Muy pronto
                 </h2>
 
                 <p>
-                    Estamos preparando nuevas piezas para esta colección.
+                    Estamos preparando nuevas tentaciones para esta categoría.
                 </p>
 
                 <a href="index.html#inicio">
@@ -301,7 +284,7 @@ async function cargarCatalogo() {
         titulo;
 
     document.title =
-        `${titulo} | MUSÉ`;
+        `${titulo} | Musé Tentación`;
 
     cantidadCatalogo.textContent =
         "Cargando productos...";
@@ -345,41 +328,38 @@ async function cargarCatalogo() {
 
 
     /*
-        Hombre muestra:
-        - productos de hombre
-        - productos unisex
+        Si Supabase no responde en 8 segundos, se corta
+        la consulta y se muestra el mensaje de error.
     */
 
-    if (generoActual === "hombre") {
+    const controlConsulta = new AbortController();
 
-        consulta = consulta.in(
-            "genero",
-            ["hombre", "unisex"]
+    const temporizadorConsulta = window.setTimeout(
+        () => controlConsulta.abort(),
+        8000
+    );
+
+    let productos = null;
+    let error = null;
+
+    try {
+
+        const respuesta = await consulta.abortSignal(
+            controlConsulta.signal
         );
 
-    }
+        productos = respuesta.data;
+        error = respuesta.error;
 
+    } catch (errorConsulta) {
 
-    /*
-        Mujer muestra:
-        - productos de mujer
-        - productos unisex
-    */
+        error = errorConsulta;
 
-    if (generoActual === "mujer") {
+    } finally {
 
-        consulta = consulta.in(
-            "genero",
-            ["mujer", "unisex"]
-        );
+        window.clearTimeout(temporizadorConsulta);
 
     }
-
-
-    const {
-        data: productos,
-        error
-    } = await consulta;
 
 
     if (error) {

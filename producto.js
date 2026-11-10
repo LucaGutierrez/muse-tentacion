@@ -1,5 +1,5 @@
 /* ===========================
-   PRODUCTO.JS — MUSÉ
+   PRODUCTO.JS — MUSÉ TENTACIÓN
 =========================== */
 
 
@@ -78,8 +78,17 @@ const sumarCantidad =
 const agregarProductoCarrito =
     document.getElementById("agregarProductoCarrito");
 
-const datoMaterialProducto =
-    document.getElementById("datoMaterialProducto");
+const bloqueIngredientes =
+    document.getElementById("bloqueIngredientes");
+
+const ingredientesProducto =
+    document.getElementById("ingredientesProducto");
+
+const bloqueAlergenos =
+    document.getElementById("bloqueAlergenos");
+
+const alergenosProducto =
+    document.getElementById("alergenosProducto");
 
 const codigoProducto =
     document.getElementById("codigoProducto");
@@ -164,6 +173,36 @@ function obtenerValoresUnicos(lista) {
 }
 
 
+/*
+    Escribe un texto en un elemento y lo oculta
+    (clase "oculto") si el texto queda vacío.
+    `bloque` es el contenedor a ocultar (por defecto,
+    el mismo elemento).
+*/
+
+function mostrarTextoOpcional(elemento, texto, bloque = elemento) {
+
+    const valor = String(texto ?? "").trim();
+
+    if (elemento) {
+        elemento.textContent = valor;
+    }
+
+    bloque?.classList.toggle("oculto", !valor);
+
+}
+
+
+/*
+    Si Supabase no responde en este tiempo, se corta
+    la consulta y se muestra el error.
+*/
+
+const TIEMPO_LIMITE_CONSULTA_MS = 8000;
+
+const controlConsultas = new AbortController();
+
+
 function mostrarErrorProducto(error = null) {
 
     if (error) {
@@ -183,13 +222,64 @@ function mostrarErrorProducto(error = null) {
    PRODUCTO PRINCIPAL
 =========================== */
 
+/*
+    Nombres visibles de las categorías y textos
+    por categoría (donas se venden en combos x2).
+    El tope real del pedido se controla en el checkout.
+*/
+
+const nombresCategoriasProducto = {
+    donas: "Donas de chocolate con frutas · Combo x2",
+    cuchareables: "Cuchareables"
+};
+
+const textosTopeCategoria = {
+    donas: "Por la web podés pedir hasta 10 combos (20 donas). ¿Querés más? Escribinos por WhatsApp o mail y lo coordinamos.",
+    cuchareables: "Por la web podés pedir hasta 10 cuchareables. ¿Querés más? Escribinos por WhatsApp o mail y lo coordinamos."
+};
+
+function obtenerTextoUnidades(cantidad) {
+
+    if (productoActual?.categoria === "donas") {
+        return cantidad === 1
+            ? "1 combo disponible"
+            : `${cantidad} combos disponibles`;
+    }
+
+    return cantidad === 1
+        ? "1 unidad disponible"
+        : `${cantidad} unidades disponibles`;
+
+}
+
 function mostrarInformacionProducto() {
 
     nombreProducto.textContent =
         productoActual.nombre || "Producto";
 
-    categoriaProducto.textContent =
-        productoActual.categoria || "";
+    mostrarTextoOpcional(
+        categoriaProducto,
+        nombresCategoriasProducto[productoActual.categoria] ||
+            productoActual.categoria
+    );
+
+    const etiquetaCantidad =
+        document.getElementById("etiquetaCantidad");
+
+    if (etiquetaCantidad) {
+        etiquetaCantidad.textContent =
+            productoActual.categoria === "donas"
+                ? "Cantidad de combos"
+                : "Cantidad";
+    }
+
+    const avisoTopeProducto =
+        document.getElementById("avisoTopeProducto");
+
+    mostrarTextoOpcional(
+        avisoTopeProducto,
+        textosTopeCategoria[productoActual.categoria]
+    );
 
     materialProducto.textContent =
         productoActual.material || "";
@@ -200,8 +290,19 @@ function mostrarInformacionProducto() {
     descripcionProducto.textContent =
         productoActual.descripcion || "";
 
-    datoMaterialProducto.textContent =
-        productoActual.material || "No especificado";
+    mostrarTextoOpcional(
+        ingredientesProducto,
+        productoActual.ingredientes,
+        bloqueIngredientes
+    );
+
+    mostrarTextoOpcional(
+        alergenosProducto,
+        productoActual.alergenos
+            ? `Contiene: ${String(productoActual.alergenos).replace(/^contiene:?\s*/i, "")}`
+            : "",
+        bloqueAlergenos
+    );
 
     codigoProducto.textContent =
         productoActual.codigo || "Sin código";
@@ -215,10 +316,10 @@ function mostrarInformacionProducto() {
         productoActual.imagen || "";
 
     imagenPrincipalProducto.alt =
-        productoActual.nombre || "Producto MUSÉ";
+        productoActual.nombre || "Producto Musé Tentación";
 
     document.title =
-        `${productoActual.nombre} | MUSÉ`;
+        `${productoActual.nombre} | Musé Tentación`;
 
 }
 
@@ -238,7 +339,7 @@ function mostrarImagenPrincipal(imagen) {
     imagenPrincipalProducto.alt =
         imagen.alt ||
         productoActual.nombre ||
-        "Producto MUSÉ";
+        "Producto Musé Tentación";
 
 
     const botonesMiniatura =
@@ -451,7 +552,7 @@ function seleccionarColor(color) {
         capitalizarTexto(color);
 
     talleSeleccionadoTexto.textContent =
-        "Seleccioná un talle";
+        "Seleccioná un tamaño";
 
 
     opcionesColores
@@ -487,7 +588,7 @@ function seleccionarColor(color) {
             varianteConImagen.imagen;
 
         imagenPrincipalProducto.alt =
-            `${productoActual.nombre} color ${color}`;
+            `${productoActual.nombre} ${color}`;
 
     }
 
@@ -662,7 +763,7 @@ function seleccionarTalle(
             variante.imagen;
 
         imagenPrincipalProducto.alt =
-            `${productoActual.nombre} ${colorElegido} talle ${talle}`;
+            `${productoActual.nombre} ${colorElegido} ${talle}`;
 
     }
 
@@ -730,7 +831,7 @@ function actualizarEstadoCompra() {
 
         stockProducto.textContent =
             stock > 0
-                ? `${stock} unidades disponibles`
+                ? obtenerTextoUnidades(stock)
                 : "Sin stock";
 
         stockProducto.classList.toggle(
@@ -764,7 +865,7 @@ function actualizarEstadoCompra() {
     if (!colorElegido) {
 
         stockProducto.textContent =
-            "Seleccioná un color";
+            "Seleccioná una variedad";
 
         agregarProductoCarrito.disabled =
             true;
@@ -798,7 +899,7 @@ function actualizarEstadoCompra() {
     ) {
 
         stockProducto.textContent =
-            "Seleccioná un talle";
+            "Seleccioná un tamaño";
 
         agregarProductoCarrito.disabled =
             true;
@@ -833,7 +934,7 @@ function actualizarEstadoCompra() {
 
     stockProducto.textContent =
         stock > 0
-            ? `${stock} unidades disponibles`
+            ? obtenerTextoUnidades(stock)
             : "Sin stock";
 
 
@@ -957,7 +1058,7 @@ agregarProductoCarrito.addEventListener(
         if (colorElegido) {
 
             detallesSeleccionados.push(
-                `Color: ${capitalizarTexto(colorElegido)}`
+                `Variedad: ${capitalizarTexto(colorElegido)}`
             );
 
         }
@@ -966,7 +1067,7 @@ agregarProductoCarrito.addEventListener(
         if (talleElegido) {
 
             detallesSeleccionados.push(
-                `Talle: ${talleElegido}`
+                `Tamaño: ${talleElegido}`
             );
 
         }
@@ -1024,7 +1125,13 @@ agregarProductoCarrito.addEventListener(
             codigo:
                 varianteElegida?.codigo ||
                 productoActual.codigo ||
-                null
+                null,
+
+            categoria:
+                productoActual.categoria || null,
+
+            unidades_por_item:
+                Number(productoActual.unidades_por_item) || 1
 
         };
 
@@ -1079,16 +1186,6 @@ agregarProductoCarrito.addEventListener(
 );
 
 
-        /*
-            En el próximo paso conectamos este
-            objeto con el carrito de script.js.
-        */
-
-        agregarProductoCarrito.textContent =
-            "Producto seleccionado";
-
-    
-
 
 
 /* ===========================
@@ -1103,6 +1200,7 @@ async function consultarProducto() {
             .select("*")
             .eq("id", productoId)
             .eq("activo", true)
+            .abortSignal(controlConsultas.signal)
             .single();
 
     if (error) {
@@ -1123,7 +1221,8 @@ async function consultarImagenes() {
             .eq("producto_id", productoId)
             .order("orden", {
                 ascending: true
-            });
+            })
+            .abortSignal(controlConsultas.signal);
 
     if (error) {
 
@@ -1149,9 +1248,13 @@ async function consultarVariantes() {
             .select("*")
             .eq("producto_id", productoId)
             .eq("activo", true)
-            .order("color", {
+            .order("orden", {
                 ascending: true
-            });
+            })
+            .order("id", {
+                ascending: true
+            })
+            .abortSignal(controlConsultas.signal);
 
     if (error) {
 
@@ -1183,6 +1286,11 @@ async function iniciarPaginaProducto() {
     }
 
 
+    const temporizadorConsultas = window.setTimeout(
+        () => controlConsultas.abort(),
+        TIEMPO_LIMITE_CONSULTA_MS
+    );
+
     try {
 
         const [
@@ -1209,10 +1317,6 @@ async function iniciarPaginaProducto() {
         productoActual = producto;
 
         imagenesProducto = imagenes;
-        console.log(
-    "Imágenes recibidas desde Supabase:",
-    imagenesProducto
-);
 
         variantesProducto = variantes;
 
@@ -1248,6 +1352,10 @@ async function iniciarPaginaProducto() {
     } catch (error) {
 
         mostrarErrorProducto(error);
+
+    } finally {
+
+        window.clearTimeout(temporizadorConsultas);
 
     }
 

@@ -125,7 +125,17 @@ const iniciarCompra = document.getElementById("iniciarCompra");
     Si todavía no existe, comienza como una lista vacía.
 */
 
-let carrito = JSON.parse(localStorage.getItem("carritoMuse")) || [];
+/*
+    Clave nueva (MUSÉ TENTACIÓN): los carritos guardados por la
+    web anterior ("carritoMuse") quedan descartados.
+    checkout.js usa la misma clave.
+*/
+
+const CLAVE_CARRITO = "carritoMuseTentacion";
+
+let carrito = JSON.parse(localStorage.getItem(CLAVE_CARRITO)) || [];
+
+localStorage.removeItem("carritoMuse");
 
 
 function abrirPanelCarrito() {
@@ -203,7 +213,7 @@ document.addEventListener("keydown", (evento) => {
 function guardarCarrito() {
 
     localStorage.setItem(
-        "carritoMuse",
+        CLAVE_CARRITO,
         JSON.stringify(carrito)
     );
 

@@ -129,7 +129,7 @@ function iniciarMenuMobile() {
     );
 
 
-    /* HOMBRE Y MUJER */
+    /* SUBMENÚ DE PRODUCTOS */
 
     const botonesSubmenu =
         menu.querySelectorAll(
@@ -245,77 +245,27 @@ function reconstruirContenidoMenuMobile() {
                 type="button"
                 aria-expanded="false">
 
-                <span>Hombre</span>
+                <span>Productos</span>
                 <span class="icono-desplegar">+</span>
 
             </button>
 
             <div class="submenu-mobile">
 
-                <a href="catalogo.html?genero=hombre">
+                <a href="catalogo.html">
                     Ver todo
                 </a>
 
-                <a href="catalogo.html?genero=hombre&categoria=collares">
-                    Collares
+                <a href="catalogo.html?categoria=donas">
+                    Donas de chocolate con frutas
                 </a>
 
-                <a href="catalogo.html?genero=hombre&categoria=pulseras">
-                    Pulseras
+                <a href="catalogo.html?categoria=cuchareables">
+                    Cuchareables
                 </a>
 
-                <a href="catalogo.html?genero=hombre&categoria=anillos">
-                    Anillos
-                </a>
-
-                <a href="catalogo.html?genero=hombre&categoria=aritos">
-                    Aritos
-                </a>
-
-                <a href="catalogo.html?genero=hombre&categoria=dijes">
-                    Dijes
-                </a>
-
-            </div>
-
-        </div>
-
-        <div class="grupo-menu-mobile">
-
-            <button
-                class="boton-submenu-mobile"
-                type="button"
-                aria-expanded="false">
-
-                <span>Mujer</span>
-                <span class="icono-desplegar">+</span>
-
-            </button>
-
-            <div class="submenu-mobile">
-
-                <a href="catalogo.html?genero=mujer">
-                    Ver todo
-                </a>
-
-                <a href="catalogo.html?genero=mujer&categoria=collares">
-                    Collares
-                </a>
-
-                <a href="catalogo.html?genero=mujer&categoria=pulseras">
-                    Pulseras
-                </a>
-
-                <a href="catalogo.html?genero=mujer&categoria=anillos">
-                    Anillos
-                </a>
-
-                <a href="catalogo.html?genero=mujer&categoria=aritos">
-                    Aritos
-                </a>
-
-                <a href="catalogo.html?genero=mujer&categoria=dijes">
-                    Dijes
+                <a href="index.html#proximamente">
+                    Próximamente
                 </a>
 
             </div>
