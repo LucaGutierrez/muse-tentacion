@@ -976,3 +976,56 @@ body {
     }
 
 }
+
+/* ===========================
+   ACEPTAR TÉRMINOS Y PRIVACIDAD
+=========================== */
+
+.aceptar-legales {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+
+    margin: 8px 0 4px;
+
+    padding: 16px 18px;
+
+    background: var(--blanco);
+
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-chico, 12px);
+
+    color: var(--chocolate);
+
+    font-size: 15px;
+    line-height: 1.5;
+
+    cursor: pointer;
+}
+
+.aceptar-legales input {
+    flex-shrink: 0;
+
+    width: 20px;
+    height: 20px;
+
+    margin-top: 1px;
+
+    accent-color: var(--frutilla-intensa, #b83a60);
+
+    cursor: pointer;
+}
+
+.aceptar-legales a {
+    color: var(--frutilla-intensa, #b83a60);
+
+    font-weight: 700;
+
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.aceptar-legales.con-error {
+    border-color: var(--error, #a3324f);
+    box-shadow: 0 0 0 3px rgba(163, 50, 79, 0.15);
+}

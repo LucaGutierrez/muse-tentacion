@@ -49,6 +49,29 @@ const TOPES_PEDIDO_WEB = {
               Ej: "5491112345678"
 */
 
+/*
+    Fecha de la versión vigente de terminos.html y privacidad.html.
+    Si se cambian esas páginas, actualizar también esta fecha.
+*/
+
+const VERSION_LEGALES = "11/11/2026";
+
+/*
+    Al tildar la casilla de aceptación se borra el aviso de error.
+*/
+
+document
+    .getElementById("aceptoLegales")
+    ?.addEventListener("change", evento => {
+
+        if (evento.target.checked) {
+            document
+                .getElementById("bloqueAceptoLegales")
+                ?.classList.remove("con-error");
+        }
+
+    });
+
 const CONTACTO_PEDIDOS = {
     whatsapp: "5491133491144",
     email: "musetentacionarg@gmail.com"
@@ -787,6 +810,28 @@ function validarFormulario() {
 
     }
 
+    /*
+        Términos y condiciones + política de privacidad:
+        hay que aceptarlos para confirmar el pedido.
+    */
+
+    const casillaLegales = document.getElementById("aceptoLegales");
+
+    if (casillaLegales && !casillaLegales.checked) {
+
+        mensajeError.textContent =
+            "Para confirmar el pedido tenés que aceptar los Términos y condiciones y la Política de privacidad.";
+
+        document
+            .getElementById("bloqueAceptoLegales")
+            ?.classList.add("con-error");
+
+        casillaLegales.focus();
+
+        return false;
+
+    }
+
     return true;
 
 }
@@ -974,6 +1019,9 @@ formularioCheckout.addEventListener(
             direccion: direccionCompleta,
 
             indicaciones: indicaciones || "Sin indicaciones",
+
+            acepto_terminos_y_privacidad:
+                `Sí (versión del ${VERSION_LEGALES}, aceptado el ${new Date().toLocaleString("es-AR")})`,
 
             fecha: new Date().toLocaleString("es-AR")
 
