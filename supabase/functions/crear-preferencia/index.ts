@@ -217,6 +217,45 @@ Deno.serve(async (pedido) => {
         }
     }
 
+    /* ---------- Envío a domicilio (lo calcula "calcular-envio") ---------- */
+
+    if (textoCorto(datos?.envio, 20) === "domicilio") {
+
+        const respuestaEnvio = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/calcular-envio`,
+            {
+                method: "POST",
+                headers: {
+                    apikey: clavePublica,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    direccion: datos?.direccion,
+                    localidad: datos?.localidad
+                })
+            }
+        );
+
+        const envio = await respuestaEnvio.json().catch(() => null);
+
+        if (
+            !respuestaEnvio.ok || !envio?.encontrada ||
+            !envio?.dentro_de_zona || !(Number(envio?.costo) > 0)
+        ) {
+            console.error("Envío no calculable:", respuestaEnvio.status, envio);
+            return responder({ error: "No pudimos calcular el envío a esa dirección." }, 409);
+        }
+
+        itemsMercadoPago.push({
+            id: "envio",
+            title: `Envío a domicilio (${envio.km} km)`,
+            category_id: "services",
+            quantity: 1,
+            unit_price: Number(envio.costo),
+            currency_id: "ARS"
+        });
+    }
+
     /* ---------- Crear la preferencia ---------- */
 
     const codigo = textoCorto(datos?.codigo, 40) || `MT-${Date.now()}`;

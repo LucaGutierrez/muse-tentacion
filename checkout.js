@@ -147,7 +147,7 @@ let costoEnvioSeleccionado = 0;
 
 const NOMBRES_ENVIO = {
     retiro: "Retiro gratis en showroom (dirección por privado)",
-    domicilio: "Envío a domicilio (costo según kilómetros, a confirmar)"
+    domicilio: "Envío a domicilio (hasta 5 km del showroom)"
 };
 
 
@@ -563,6 +563,8 @@ async function crearLinkMercadoPago(pedido) {
         body: JSON.stringify({
             codigo: pedido.codigo,
             envio: pedido.envio,
+            direccion: pedido.direccion,
+            localidad: pedido.localidad,
             cliente: pedido.cliente,
             items: pedido.items.map(item => ({
                 producto_id: item.producto_id,
@@ -777,7 +779,7 @@ function textoCostoEnvio() {
     }
 
     return obtenerEnvioElegido() === "domicilio"
-        ? "Según km"
+        ? "Calculalo abajo"
         : "Gratis";
 
 }
@@ -900,7 +902,9 @@ document
         input.addEventListener("change", () => {
 
             costoEnvioSeleccionado =
-                Number(input.dataset.precio || 0);
+                input.value === "domicilio"
+                    ? Number(envioCalculado?.costo || 0)
+                    : Number(input.dataset.precio || 0);
 
             actualizarTarjetasSeleccionadas("envio");
 
@@ -911,6 +915,227 @@ document
         });
 
     });
+
+
+/* ===========================
+   CALCULAR ENVÍO A DOMICILIO
+=========================== */
+
+/*
+    La Edge Function "calcular-envio" geolocaliza la dirección,
+    mide los km por calle desde el showroom y aplica la tarifa
+    (las tarifas y el radio máximo están en esa función).
+    envioCalculado = { direccion, localidad, km, costo } o null.
+    Si el cliente cambia la dirección, hay que volver a calcular.
+*/
+
+const URL_CALCULAR_ENVIO =
+    "https://sawsneidzpovlqnnirti.supabase.co/functions/v1/calcular-envio";
+
+let envioCalculado = null;
+
+const resultadoEnvio = document.getElementById("resultadoEnvio");
+const botonCalcularEnvio = document.getElementById("botonCalcularEnvio");
+
+
+function mostrarResultadoEnvio(html, esError = false) {
+
+    if (!resultadoEnvio) {
+        return;
+    }
+
+    resultadoEnvio.innerHTML = html;
+    resultadoEnvio.classList.toggle("error", esError);
+
+}
+
+
+function envioSigueVigente() {
+
+    return Boolean(
+        envioCalculado &&
+        envioCalculado.direccion === valorCampo("direccion") &&
+        envioCalculado.localidad === valorCampo("localidad")
+    );
+
+}
+
+
+function olvidarEnvioCalculado() {
+
+    if (!envioCalculado) {
+        return;
+    }
+
+    envioCalculado = null;
+
+    if (obtenerEnvioElegido() === "domicilio") {
+        costoEnvioSeleccionado = 0;
+    }
+
+    const precioOpcion = document.getElementById("precioOpcionDomicilio");
+
+    if (precioOpcion) {
+        precioOpcion.textContent = "Según km";
+    }
+
+    mostrarResultadoEnvio("Cambiaste la dirección: calculá el envío de nuevo.");
+
+    actualizarTotales();
+
+}
+
+
+async function calcularEnvio() {
+
+    const direccion = valorCampo("direccion");
+    const localidad = valorCampo("localidad");
+
+    if (!direccion || !localidad) {
+
+        mostrarResultadoEnvio(
+            "Completá la dirección y el barrio/localidad para calcular el envío.",
+            true
+        );
+
+        return false;
+
+    }
+
+    if (botonCalcularEnvio) {
+        botonCalcularEnvio.disabled = true;
+        botonCalcularEnvio.textContent = "Calculando...";
+    }
+
+    mostrarResultadoEnvio("");
+
+    try {
+
+        const respuesta = await fetch(URL_CALCULAR_ENVIO, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                apikey: CLAVE_PUBLICA_SUPABASE
+            },
+            body: JSON.stringify({ direccion, localidad })
+        });
+
+        const resultado = await respuesta.json().catch(() => null);
+
+        if (!respuesta.ok || !resultado) {
+            throw new Error(resultado?.error || `Error ${respuesta.status}`);
+        }
+
+        if (!resultado.encontrada) {
+
+            mostrarResultadoEnvio(
+                escaparHtml(
+                    resultado.error ||
+                    "No encontramos esa dirección. Revisá calle, altura y localidad."
+                ),
+                true
+            );
+
+            return false;
+
+        }
+
+        if (!resultado.dentro_de_zona) {
+
+            const urlWhatsApp = construirUrlWhatsApp(
+                `Hola MUSÉ TENTACIÓN! Quiero un envío a ${direccion}, ${localidad} ` +
+                `(${resultado.km} km). ¿Llegan hasta ahí?`
+            );
+
+            mostrarResultadoEnvio(
+                `Tu dirección queda a <strong>${resultado.km} km</strong>, fuera de ` +
+                `nuestra zona de envío por la web (hasta ${resultado.max_km} km). ` +
+                "Podés elegir retiro gratis o " +
+                `<a href="${urlWhatsApp}" target="_blank" rel="noopener noreferrer">` +
+                "escribirnos por WhatsApp</a> y lo coordinamos.",
+                true
+            );
+
+            return false;
+
+        }
+
+        envioCalculado = {
+            direccion,
+            localidad,
+            km: resultado.km,
+            costo: Number(resultado.costo)
+        };
+
+        costoEnvioSeleccionado = envioCalculado.costo;
+
+        const precioOpcion = document.getElementById("precioOpcionDomicilio");
+
+        if (precioOpcion) {
+            precioOpcion.textContent = formatearPrecio(envioCalculado.costo);
+        }
+
+        mostrarResultadoEnvio(
+            `Envío: <strong>${formatearPrecio(envioCalculado.costo)}</strong> ` +
+            `(${envioCalculado.km} km). Ya lo sumamos al total.`
+        );
+
+        actualizarTotales();
+
+        return true;
+
+    } catch (error) {
+
+        console.error("No se pudo calcular el envío:", error);
+
+        mostrarResultadoEnvio(
+            "No pudimos calcular el envío en este momento. Probá de nuevo " +
+            "o escribinos por WhatsApp.",
+            true
+        );
+
+        return false;
+
+    } finally {
+
+        if (botonCalcularEnvio) {
+            botonCalcularEnvio.disabled = false;
+            botonCalcularEnvio.textContent = "Calcular envío";
+        }
+
+    }
+
+}
+
+
+botonCalcularEnvio?.addEventListener("click", calcularEnvio);
+
+["direccion", "localidad"].forEach(id => {
+
+    const campo = document.getElementById(id);
+
+    campo?.addEventListener("input", () => {
+
+        if (envioCalculado && !envioSigueVigente()) {
+            olvidarEnvioCalculado();
+        }
+
+    });
+
+    /* Al salir de la localidad con la dirección completa, calcula solo. */
+    if (id === "localidad") {
+
+        campo?.addEventListener("change", () => {
+
+            if (!envioSigueVigente() && valorCampo("direccion")) {
+                calcularEnvio();
+            }
+
+        });
+
+    }
+
+});
 
 
 /* ===========================
@@ -1019,6 +1244,46 @@ const TIPOS_COMPROBANTE = {
 const URL_PANEL_COMPROBANTES =
     "https://supabase.com/dashboard/project/sawsneidzpovlqnnirti/storage/buckets/comprobantes";
 
+/*
+    Link directo (firmado, válido 1 año) para ver el comprobante
+    desde el mail. Si falla, se manda el link al panel de Supabase.
+*/
+
+const URL_FIRMAR_COMPROBANTE =
+    "https://sawsneidzpovlqnnirti.supabase.co/functions/v1/firmar-comprobante";
+
+async function obtenerLinkComprobante(ruta) {
+
+    try {
+
+        const respuesta = await fetch(URL_FIRMAR_COMPROBANTE, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                apikey: CLAVE_PUBLICA_SUPABASE
+            },
+            body: JSON.stringify({ ruta })
+        });
+
+        const resultado = await respuesta.json().catch(() => null);
+
+        if (respuesta.ok && resultado?.url) {
+            return resultado.url;
+        }
+
+        console.warn("No se pudo firmar el comprobante:", resultado);
+
+    } catch (error) {
+
+        console.warn("No se pudo firmar el comprobante:", error);
+
+    }
+
+    return `${ruta} — verlo en: ${URL_PANEL_COMPROBANTES}`;
+
+}
+
+
 async function subirComprobante(archivo, codigoPedido) {
 
     const extension = TIPOS_COMPROBANTE[archivo?.type];
@@ -1104,6 +1369,17 @@ function validarFormulario() {
         document
             .getElementById(campoIncompleto)
             ?.focus();
+
+        return false;
+
+    }
+
+    if (obtenerEnvioElegido() === "domicilio" && !envioSigueVigente()) {
+
+        mensajeError.textContent =
+            "Calculá el costo del envío (botón “Calcular envío”) antes de confirmar.";
+
+        botonCalcularEnvio?.focus();
 
         return false;
 
@@ -1253,7 +1529,7 @@ function generarNumeroPedido() {
 async function enviarPedidoAFormspree(datosPedido) {
 
     const respuesta = await fetch(
-        "https://formspree.io/f/xlgqwagd",
+        "https://formspree.io/f/xoedqdgq",
         {
             method: "POST",
 
@@ -1404,7 +1680,10 @@ formularioCheckout.addEventListener(
 
             metodo_envio: NOMBRES_ENVIO[envio],
 
-            costo_envio: textoCostoEnvio(),
+            costo_envio:
+                envio === "domicilio" && envioCalculado
+                    ? `${formatearPrecio(envioCalculado.costo)} (${envioCalculado.km} km por calle)`
+                    : textoCostoEnvio(),
 
             total: formatearPrecio(total),
 
@@ -1441,7 +1720,7 @@ formularioCheckout.addEventListener(
                 );
 
                 datosPedido.comprobante =
-                    `${ruta} — verlo en: ${URL_PANEL_COMPROBANTES}`;
+                    await obtenerLinkComprobante(ruta);
 
             } catch (errorComprobante) {
 
@@ -1500,7 +1779,9 @@ formularioCheckout.addEventListener(
                     codigo: codigoPedido,
                     items: carritoCheckout,
                     cliente: { nombre, apellido, email, telefono },
-                    envio
+                    envio,
+                    direccion,
+                    localidad
                 });
 
                 window.location.href = urlPago;

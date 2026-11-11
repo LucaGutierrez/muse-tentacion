@@ -1134,3 +1134,60 @@ body {
     border-color: var(--error, #a3324f);
     box-shadow: 0 0 0 3px rgba(163, 50, 79, 0.15);
 }
+
+/* Cálculo del envío a domicilio */
+.calculo-envio {
+    margin-top: 14px;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+}
+
+.boton-calcular-envio {
+    min-height: 44px;
+    padding: 0 20px;
+
+    color: var(--blanco);
+    background: var(--chocolate);
+
+    border: 0;
+    border-radius: var(--pildora);
+
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition: opacity 0.2s ease;
+}
+
+.boton-calcular-envio:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.resultado-envio {
+    flex: 1 1 220px;
+
+    color: var(--chocolate-suave);
+
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.resultado-envio strong {
+    color: var(--chocolate);
+}
+
+.resultado-envio.error {
+    color: var(--frutilla-intensa);
+    font-weight: 700;
+}
+
+.resultado-envio a {
+    color: var(--frutilla-intensa);
+    font-weight: 800;
+}
