@@ -524,8 +524,113 @@ body {
 }
 
 .datos-envio[hidden],
-.aviso-tope-pedido[hidden] {
+.aviso-tope-pedido[hidden],
+.bloque-transferencia[hidden],
+.fila-descuento[hidden],
+.etiqueta-descuento[hidden] {
     display: none;
+}
+
+/* Pastilla "10% OFF" en la tarjeta de transferencia */
+.etiqueta-descuento {
+    margin-left: 6px;
+    padding: 2px 9px;
+
+    display: inline-block;
+
+    color: var(--blanco);
+    background: var(--frutilla-intensa);
+
+    border-radius: var(--pildora);
+
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+}
+
+/* Datos bancarios + comprobante: solo con "Transferencia" */
+.bloque-transferencia {
+    margin-top: 16px;
+    padding: 18px 16px;
+
+    background: var(--rosa-niebla);
+
+    border: 1.5px dashed var(--rosa-claro);
+    border-radius: var(--radio);
+
+    animation: aparecer 0.35s ease both;
+}
+
+.bloque-transferencia-titulo {
+    margin-bottom: 6px;
+
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.bloque-transferencia dl {
+    margin-bottom: 18px;
+}
+
+.bloque-transferencia dl > div {
+    padding: 10px 0;
+
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+
+    border-bottom: 1px dashed var(--rosa-claro);
+}
+
+.bloque-transferencia dt {
+    color: var(--chocolate-suave);
+
+    font-size: 14px;
+}
+
+.bloque-transferencia dd {
+    font-size: 14px;
+    font-weight: 800;
+    text-align: right;
+
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.campo-comprobante {
+    display: grid;
+    gap: 6px;
+}
+
+.campo-comprobante span {
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.campo-comprobante input {
+    width: 100%;
+    padding: 12px;
+
+    background: var(--blanco);
+
+    border: 1.5px solid var(--rosa-claro);
+    border-radius: var(--radio);
+
+    font: inherit;
+    font-size: 14px;
+
+    cursor: pointer;
+}
+
+.campo-comprobante small {
+    color: var(--chocolate-suave);
+
+    font-size: 12px;
+}
+
+.fila-descuento strong {
+    color: var(--frutilla-intensa);
 }
 
 .mensaje-error {

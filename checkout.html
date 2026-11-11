@@ -174,8 +174,54 @@
                             <div>
                                 <strong>Mercado Pago</strong>
                                 <p>Pagás con tarjeta, dinero en cuenta u otros medios de Mercado Pago.</p>
-                                <small>Al confirmar, te enviamos el link de pago por WhatsApp o mail.</small>
+                                <small>Al confirmar, te llevamos a Mercado Pago para pagar de forma segura.</small>
                             </div>
+                        </label>
+
+                        <label class="tarjeta-opcion">
+                            <input type="radio" name="pago" value="transferencia">
+
+                            <div>
+                                <strong>
+                                    Transferencia bancaria
+                                    <span id="etiquetaDescuentoTransferencia" class="etiqueta-descuento">10% OFF</span>
+                                </strong>
+                                <p>Transferís desde tu banco o billetera y subís el comprobante.</p>
+                                <small>El descuento se aplica sobre los productos.</small>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div id="bloqueTransferencia" class="bloque-transferencia" hidden>
+
+                        <p class="bloque-transferencia-titulo">Datos para transferir</p>
+
+                        <dl>
+                            <div>
+                                <dt>Monto</dt>
+                                <dd id="montoTransferir">$0</dd>
+                            </div>
+                            <div>
+                                <dt>Alias</dt>
+                                <dd id="aliasTransferencia"></dd>
+                            </div>
+                            <div>
+                                <dt>CBU / CVU</dt>
+                                <dd id="cbuTransferencia"></dd>
+                            </div>
+                            <div>
+                                <dt>Banco</dt>
+                                <dd id="bancoTransferencia"></dd>
+                            </div>
+                        </dl>
+
+                        <label class="campo-comprobante" for="comprobante">
+                            <span>Comprobante de la transferencia *</span>
+                            <input
+                                type="file"
+                                id="comprobante"
+                                accept="image/jpeg,image/png,image/webp,image/heic,application/pdf">
+                            <small>Captura de pantalla, foto o PDF, hasta 5 MB.</small>
                         </label>
                     </div>
                 </section>
@@ -252,6 +298,11 @@
                         <strong id="subtotalCheckout">$0</strong>
                     </div>
 
+                    <div id="filaDescuento" class="fila-descuento" hidden>
+                        <span>Descuento transferencia</span>
+                        <strong id="descuentoCheckout">-$0</strong>
+                    </div>
+
                     <div>
                         <span>Envío</span>
                         <strong id="envioCheckout">Gratis</strong>
@@ -266,6 +317,7 @@
         </aside>
     </main>
 
+    <script src="promociones.js"></script>
     <script src="checkout.js"></script>
 </body>
 

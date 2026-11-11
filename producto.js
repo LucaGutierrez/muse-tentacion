@@ -284,8 +284,7 @@ function mostrarInformacionProducto() {
     materialProducto.textContent =
         productoActual.material || "";
 
-    precioProducto.textContent =
-        formatearPrecio(productoActual.precio);
+    mostrarPrecio(productoActual.precio);
 
     descripcionProducto.textContent =
         productoActual.descripcion || "";
@@ -794,6 +793,32 @@ function obtenerStockDisponible() {
 }
 
 
+/*
+    Muestra el precio y, debajo, el precio con la promo de
+    transferencia (promociones.js).
+*/
+
+function mostrarPrecio(precio) {
+
+    precioProducto.textContent = formatearPrecio(precio);
+
+    const promo = document.getElementById("promoTransferencia");
+
+    if (!promo) {
+        return;
+    }
+
+    const html =
+        typeof htmlPromoTransferencia === "function"
+            ? htmlPromoTransferencia(precio)
+            : "";
+
+    promo.innerHTML = html;
+    promo.hidden = !html;
+
+}
+
+
 function obtenerPrecioFinal() {
 
     if (
@@ -852,10 +877,7 @@ function actualizarEstadoCompra() {
                 ? "Agregar al carrito"
                 : "Sin stock";
 
-        precioProducto.textContent =
-            formatearPrecio(
-                productoActual.precio
-            );
+        mostrarPrecio(productoActual.precio);
 
         return;
 
@@ -949,10 +971,7 @@ function actualizarEstadoCompra() {
     );
 
 
-    precioProducto.textContent =
-        formatearPrecio(
-            obtenerPrecioFinal()
-        );
+    mostrarPrecio(obtenerPrecioFinal());
 
 
     agregarProductoCarrito.disabled =

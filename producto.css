@@ -695,3 +695,40 @@ body {
     }
 
 }
+
+/* Promo de transferencia en la página del producto */
+.promo-transferencia {
+    margin: -6px 0 18px;
+
+    color: var(--chocolate-suave);
+
+    font-size: 15px;
+}
+
+.promo-transferencia[hidden] {
+    display: none;
+}
+
+.promo-transferencia strong {
+    color: var(--chocolate);
+
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.promo-transferencia-etiqueta {
+    margin-left: 6px;
+    padding: 2px 10px;
+
+    display: inline-block;
+
+    color: #fff;
+    background: var(--frutilla-intensa);
+
+    border-radius: 999px;
+
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}

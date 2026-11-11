@@ -176,6 +176,13 @@ const hayStock =
         ${formatearPrecioProducto(producto.precio)}
     </strong>
 
+    ${
+        typeof htmlPromoTransferencia === "function" &&
+        htmlPromoTransferencia(producto.precio)
+            ? `<p class="promo-transferencia">${htmlPromoTransferencia(producto.precio)}</p>`
+            : ""
+    }
+
     <p class="producto-stock ${hayStock ? "" : "sin-stock"}">
 
         ${

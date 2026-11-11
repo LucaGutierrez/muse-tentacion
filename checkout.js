@@ -28,6 +28,10 @@
 
    Si se supera algún tope, el checkout no deja pagar online
    y ofrece escribir por WhatsApp o mail con el detalle.
+
+   ⚠ Los mismos topes están repetidos en el servidor
+   (supabase/functions/crear-preferencia/index.ts), que es
+   el que manda de verdad. Si se cambia uno, cambiar el otro.
 */
 
 const TOPES_PEDIDO_WEB = {
@@ -42,6 +46,28 @@ const TOPES_PEDIDO_WEB = {
         unidadesPorItem: 1
     }
 };
+
+/*
+    PAGO POR TRANSFERENCIA
+    - descuentoPorcentaje: % OFF sobre los productos (no sobre el
+      envío). Se toma de promociones.js; 0 = sin descuento.
+    - alias / cbu / banco: datos de la cuenta donde transfieren.
+      Se muestran solo en el checkout al elegir transferencia.
+    El cliente tiene que subir el comprobante (foto o PDF) para
+    confirmar. Se guarda en Supabase Storage, bucket privado
+    "comprobantes" (solo se ve desde el panel de Supabase).
+*/
+
+const PAGO_TRANSFERENCIA = {
+    // El % se cambia en promociones.js (DESCUENTO_TRANSFERENCIA).
+    descuentoPorcentaje:
+        typeof DESCUENTO_TRANSFERENCIA === "number" ? DESCUENTO_TRANSFERENCIA : 10,
+    alias: "muse.ar",
+    cbu: "0000003100004474595473",
+    banco: "Mercado Pago"
+};
+
+const MAX_MB_COMPROBANTE = 5;
 
 /*
     Datos de contacto para pedidos grandes.
@@ -494,50 +520,172 @@ function actualizarAvisoTope() {
 
 
 /* ===========================
-   MERCADO PAGO (pendiente)
+   MERCADO PAGO (Checkout Pro)
 =========================== */
 
 /*
-    TODO: cobro con Mercado Pago (Checkout Pro).
+    Crear el pago necesita el Access Token de Mercado Pago, que
+    es SECRETO: vive solo en la Edge Function de Supabase
+    "crear-preferencia" (supabase/functions/crear-preferencia).
 
-    No se puede hacer solo desde el navegador: crear el pago
-    necesita el Access Token de Mercado Pago, que es SECRETO
-    y no puede estar en este archivo.
+    Le mandamos los ítems (producto_id, variante_id, cantidad) y
+    los datos del cliente. La función vuelve a leer los precios
+    desde la base, revisa los topes y devuelve la URL de pago
+    (init_point). Acá solo redirigimos.
 
-    Plan (ver supabase/LEEME.md):
-    1. Una Supabase Edge Function "crear-preferencia" guarda
-       el Access Token como secreto.
-    2. Esta función le manda los ítems (producto_id,
-       variante_id, cantidad) y los datos del cliente.
-    3. La Edge Function vuelve a leer los precios desde la
-       base (nunca confía en los precios del navegador),
-       revisa los topes, crea la preferencia y devuelve
-       la URL de pago (init_point).
-    4. Acá redirigimos: window.location.href = init_point.
-
-    `pedido` = { codigo, items, cliente, envio, total }
+    Si la función no responde, el pedido igual queda registrado
+    por Formspree y el link de pago se manda a mano.
 */
 
-async function iniciarPagoMercadoPago(pedido) {
+const URL_CREAR_PREFERENCIA =
+    "https://sawsneidzpovlqnnirti.supabase.co/functions/v1/crear-preferencia";
+
+const CLAVE_PUBLICA_SUPABASE =
+    "sb_publishable_kLWVNRFOTKld9A51sAWG-g_FVFScEia";
+
+/*
+    `pedido` = { codigo, items, cliente, envio }
+    Devuelve la URL de pago de Mercado Pago.
+*/
+
+async function crearLinkMercadoPago(pedido) {
 
     if (pedidoSuperaTope()) {
         throw new Error("El pedido supera el tope de compra online.");
     }
 
-    // TODO: reemplazar por la llamada a la Edge Function, ej:
-    // const { data, error } = await clienteSupabase.functions.invoke(
-    //     "crear-preferencia",
-    //     { body: pedido }
-    // );
-    // if (error) throw error;
-    // window.location.href = data.init_point;
+    const respuesta = await fetch(URL_CREAR_PREFERENCIA, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            apikey: CLAVE_PUBLICA_SUPABASE
+        },
+        body: JSON.stringify({
+            codigo: pedido.codigo,
+            envio: pedido.envio,
+            cliente: pedido.cliente,
+            items: pedido.items.map(item => ({
+                producto_id: item.producto_id,
+                variante_id: item.variante_id ?? null,
+                cantidad: item.cantidad
+            }))
+        })
+    });
 
-    console.warn(
-        "Mercado Pago todavía no está conectado.",
-        pedido
-    );
+    const resultado = await respuesta.json().catch(() => null);
 
-    throw new Error("Mercado Pago todavía no está disponible.");
+    if (!respuesta.ok || !resultado?.init_point) {
+        throw new Error(
+            resultado?.error || "No pudimos generar el link de pago."
+        );
+    }
+
+    return resultado.init_point;
+
+}
+
+
+/*
+    Cambia los textos de la pantalla de confirmación.
+    Campos opcionales: etiqueta, icono, marca, detalle, texto.
+*/
+
+function configurarConfirmacion(textos) {
+
+    const elementos = {
+        etiqueta: ".confirmacion-etiqueta",
+        icono: ".mp-icono",
+        marca: ".mercado-pago-marca strong",
+        detalle: ".mercado-pago-marca small",
+        texto: ".instruccion-comprobante"
+    };
+
+    Object.entries(elementos).forEach(([clave, selector]) => {
+
+        const elemento = confirmacionPedido?.querySelector(selector);
+
+        if (elemento && textos[clave]) {
+            elemento.textContent = textos[clave];
+        }
+
+    });
+
+}
+
+
+/*
+    Cuando el cliente vuelve de Mercado Pago, la URL trae
+    ?pago=aprobado|pendiente|rechazado&pedido=MT-...
+    Mostramos el resultado. El carrito se vacía solo si el
+    pago se aprobó o quedó pendiente.
+*/
+
+function mostrarResultadoPago() {
+
+    const parametros = new URLSearchParams(window.location.search);
+
+    const estado = parametros.get("pago");
+
+    if (!estado) {
+        return false;
+    }
+
+    const codigo = parametros.get("pedido") || "";
+
+    if (estado === "rechazado") {
+
+        mensajeError.textContent =
+            "El pago no se pudo completar. Podés intentarlo de nuevo " +
+            "o escribirnos por WhatsApp y lo resolvemos.";
+
+        return false;
+
+    }
+
+    localStorage.removeItem(CLAVE_CARRITO);
+
+    carritoCheckout.length = 0;
+
+    formularioCheckout.style.display = "none";
+
+    confirmacionPedido?.classList.add("visible");
+
+    if (estado === "aprobado") {
+
+        configurarConfirmacion({
+            etiqueta: "PAGO APROBADO",
+            detalle: "Pago aprobado",
+            texto:
+                "¡Listo! Recibimos tu pago. Te escribimos por WhatsApp " +
+                "para coordinar la entrega o el retiro."
+        });
+
+    } else {
+
+        configurarConfirmacion({
+            etiqueta: "PAGO PENDIENTE",
+            detalle: "Pago pendiente",
+            texto:
+                "Tu pago está en proceso. Cuando Mercado Pago lo confirme " +
+                "te escribimos para coordinar la entrega o el retiro."
+        });
+
+    }
+
+    if (numeroPedido && codigo) {
+        numeroPedido.textContent = `Número de pedido: ${codigo}`;
+    }
+
+    if (enlaceWhatsApp) {
+
+        enlaceWhatsApp.href = construirUrlWhatsApp(
+            `Hola MUSÉ TENTACIÓN! Pagué el pedido ${codigo} ` +
+            "por Mercado Pago. ¿Coordinamos la entrega?"
+        );
+
+    }
+
+    return true;
 
 }
 
@@ -635,12 +783,58 @@ function textoCostoEnvio() {
 }
 
 
+function obtenerPagoElegido() {
+
+    return document.querySelector(
+        'input[name="pago"]:checked'
+    )?.value || "mercadopago";
+
+}
+
+
+/*
+    Descuento por transferencia, sobre los productos.
+*/
+
+function calcularDescuento() {
+
+    if (obtenerPagoElegido() !== "transferencia") {
+        return 0;
+    }
+
+    return Math.round(
+        calcularSubtotal() *
+        (Number(PAGO_TRANSFERENCIA.descuentoPorcentaje) || 0) / 100
+    );
+
+}
+
+
 function actualizarTotales() {
 
     const subtotal = calcularSubtotal();
 
+    const descuento = calcularDescuento();
+
     const total =
-        subtotal + costoEnvioSeleccionado;
+        subtotal - descuento + costoEnvioSeleccionado;
+
+    const filaDescuento = document.getElementById("filaDescuento");
+
+    if (filaDescuento) {
+
+        filaDescuento.hidden = descuento === 0;
+
+        document.getElementById("descuentoCheckout").textContent =
+            `-${formatearPrecio(descuento)}`;
+
+    }
+
+    const montoTransferir = document.getElementById("montoTransferir");
+
+    if (montoTransferir) {
+        montoTransferir.textContent = formatearPrecio(total);
+    }
 
     subtotalCheckout.textContent =
         formatearPrecio(subtotal);
@@ -717,6 +911,153 @@ document
         });
 
     });
+
+
+/* ===========================
+   CAMBIO DE FORMA DE PAGO
+=========================== */
+
+/*
+    Muestra los datos bancarios y el campo del comprobante
+    solo si eligen transferencia.
+*/
+
+function actualizarBloqueTransferencia() {
+
+    const bloque = document.getElementById("bloqueTransferencia");
+
+    if (!bloque) {
+        return;
+    }
+
+    const esTransferencia = obtenerPagoElegido() === "transferencia";
+
+    bloque.hidden = !esTransferencia;
+
+    const comprobante = document.getElementById("comprobante");
+
+    if (comprobante) {
+        comprobante.required = esTransferencia;
+    }
+
+    const datos = {
+        aliasTransferencia: PAGO_TRANSFERENCIA.alias,
+        cbuTransferencia: PAGO_TRANSFERENCIA.cbu,
+        bancoTransferencia: PAGO_TRANSFERENCIA.banco
+    };
+
+    Object.entries(datos).forEach(([id, valor]) => {
+
+        const elemento = document.getElementById(id);
+
+        if (elemento) {
+            elemento.textContent = valor;
+        }
+
+    });
+
+    if (
+        esTransferencia &&
+        Object.values(datos).some(valor => String(valor).includes("[["))
+    ) {
+        console.warn(
+            "Faltan los datos bancarios en PAGO_TRANSFERENCIA (checkout.js)."
+        );
+    }
+
+}
+
+
+/*
+    Muestra "X% OFF" en la tarjeta de transferencia.
+*/
+
+const etiquetaDescuento = document.getElementById("etiquetaDescuentoTransferencia");
+
+if (etiquetaDescuento) {
+
+    const porcentaje = Number(PAGO_TRANSFERENCIA.descuentoPorcentaje) || 0;
+
+    etiquetaDescuento.textContent = `${porcentaje}% OFF`;
+
+    etiquetaDescuento.hidden = porcentaje === 0;
+
+}
+
+
+document
+    .querySelectorAll('input[name="pago"]')
+    .forEach(input => {
+
+        input.addEventListener("change", () => {
+
+            actualizarTarjetasSeleccionadas("pago");
+
+            actualizarBloqueTransferencia();
+
+            actualizarTotales();
+
+        });
+
+    });
+
+
+/*
+    Sube el comprobante al bucket privado "comprobantes".
+    La clave pública solo puede SUBIR archivos ahí, no verlos
+    ni borrarlos. Devuelve la ruta del archivo.
+*/
+
+const TIPOS_COMPROBANTE = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/heic": "heic",
+    "application/pdf": "pdf"
+};
+
+const URL_PANEL_COMPROBANTES =
+    "https://supabase.com/dashboard/project/sawsneidzpovlqnnirti/storage/buckets/comprobantes";
+
+async function subirComprobante(archivo, codigoPedido) {
+
+    const extension = TIPOS_COMPROBANTE[archivo?.type];
+
+    if (!extension) {
+        throw new Error("Formato de comprobante no permitido.");
+    }
+
+    const aleatorio = crypto.randomUUID().slice(0, 8);
+
+    const ruta = `${codigoPedido}-${aleatorio}.${extension}`;
+
+    const respuesta = await fetch(
+        `https://sawsneidzpovlqnnirti.supabase.co/storage/v1/object/comprobantes/${ruta}`,
+        {
+            method: "POST",
+            headers: {
+                apikey: CLAVE_PUBLICA_SUPABASE,
+                Authorization: `Bearer ${CLAVE_PUBLICA_SUPABASE}`,
+                "Content-Type": archivo.type,
+                "x-upsert": "false"
+            },
+            body: archivo
+        }
+    );
+
+    if (!respuesta.ok) {
+
+        const detalle = await respuesta.text().catch(() => "");
+
+        throw new Error(
+            `Storage respondió ${respuesta.status}: ${detalle}`
+        );
+
+    }
+
+    return ruta;
+
+}
 
 
 /* ===========================
@@ -807,6 +1148,52 @@ function validarFormulario() {
         document.getElementById("telefono")?.focus();
 
         return false;
+
+    }
+
+    /*
+        Transferencia: el comprobante es obligatorio.
+    */
+
+    if (obtenerPagoElegido() === "transferencia") {
+
+        const campoComprobante = document.getElementById("comprobante");
+
+        const archivo = campoComprobante?.files?.[0];
+
+        if (!archivo) {
+
+            mensajeError.textContent =
+                "Subí el comprobante de la transferencia para confirmar el pedido.";
+
+            campoComprobante?.focus();
+
+            return false;
+
+        }
+
+        if (!TIPOS_COMPROBANTE[archivo.type]) {
+
+            mensajeError.textContent =
+                "El comprobante tiene que ser una foto (JPG, PNG, WEBP o HEIC) o un PDF.";
+
+            campoComprobante.focus();
+
+            return false;
+
+        }
+
+        if (archivo.size > MAX_MB_COMPROBANTE * 1024 * 1024) {
+
+            mensajeError.textContent =
+                `El comprobante pesa más de ${MAX_MB_COMPROBANTE} MB. ` +
+                "Probá con una captura de pantalla.";
+
+            campoComprobante.focus();
+
+            return false;
+
+        }
 
     }
 
@@ -966,10 +1353,14 @@ formularioCheckout.addEventListener(
 
         const envio = obtenerEnvioElegido();
 
+        const pago = obtenerPagoElegido();
+
         const subtotal = calcularSubtotal();
 
+        const descuento = calcularDescuento();
+
         const total =
-            subtotal + costoEnvioSeleccionado;
+            subtotal - descuento + costoEnvioSeleccionado;
 
         const nombre = valorCampo("nombre");
         const apellido = valorCampo("apellido");
@@ -1007,6 +1398,10 @@ formularioCheckout.addEventListener(
 
             subtotal: formatearPrecio(subtotal),
 
+            descuento_transferencia: descuento
+                ? `-${formatearPrecio(descuento)} (${PAGO_TRANSFERENCIA.descuentoPorcentaje}% OFF)`
+                : "No aplica",
+
             metodo_envio: NOMBRES_ENVIO[envio],
 
             costo_envio: textoCostoEnvio(),
@@ -1014,7 +1409,9 @@ formularioCheckout.addEventListener(
             total: formatearPrecio(total),
 
             metodo_pago:
-                "Mercado Pago (enviar link de pago al cliente)",
+                pago === "transferencia"
+                    ? "Transferencia bancaria (revisar el comprobante y que el monto coincida con el total)"
+                    : "Mercado Pago online (si no figura el pago en Mercado Pago, mandar link al cliente)",
 
             direccion: direccionCompleta,
 
@@ -1028,29 +1425,96 @@ formularioCheckout.addEventListener(
         };
 
         /*
-            Gancho de Mercado Pago (pendiente).
-            Cuando exista la Edge Function, acá se llama:
-
-            await iniciarPagoMercadoPago({
-                codigo: codigoPedido,
-                items: carritoCheckout,
-                cliente: { nombre, apellido, email, telefono },
-                envio,
-                total
-            });
-            return;
-
-            Mientras tanto, el pedido se registra por Formspree
-            y el link de pago se envía a mano.
+            Transferencia: primero subimos el comprobante, así el
+            link va en el mail del pedido.
         */
+
+        if (pago === "transferencia") {
+
+            try {
+
+                botonConfirmar.textContent = "Subiendo comprobante...";
+
+                const ruta = await subirComprobante(
+                    document.getElementById("comprobante").files[0],
+                    codigoPedido
+                );
+
+                datosPedido.comprobante =
+                    `${ruta} — verlo en: ${URL_PANEL_COMPROBANTES}`;
+
+            } catch (errorComprobante) {
+
+                console.error(errorComprobante);
+
+                mensajeError.textContent =
+                    "No pudimos subir el comprobante. Probá de nuevo " +
+                    "(foto o PDF de hasta " +
+                    `${MAX_MB_COMPROBANTE} MB) o escribinos por WhatsApp.`;
+
+                botonConfirmar.disabled = false;
+                botonConfirmar.textContent = "Confirmar pedido";
+
+                return;
+
+            }
+
+            botonConfirmar.textContent = "Registrando pedido...";
+
+        }
 
         try {
 
             /*
-                Si Formspree falla, no borramos el carrito.
+                1. El pedido siempre llega por mail (Formspree).
+                   Si Formspree falla, no borramos el carrito.
             */
 
             await enviarPedidoAFormspree(datosPedido);
+
+            localStorage.setItem(
+                "ultimoPedidoMuse",
+                JSON.stringify({
+                    pedido: codigoPedido,
+                    total,
+                    pago,
+                    envio,
+                    cliente: `${nombre} ${apellido}`,
+                    fecha: new Date().toISOString()
+                })
+            );
+
+            /*
+                2. Mercado Pago: vamos a pagar. El carrito se
+                   vacía cuando el cliente vuelve con el pago
+                   aprobado (ver mostrarResultadoPago).
+                   Si no se puede generar el link, seguimos con
+                   el aviso de "te mandamos el link".
+            */
+
+            if (pago === "mercadopago") try {
+
+                botonConfirmar.textContent = "Yendo a Mercado Pago...";
+
+                const urlPago = await crearLinkMercadoPago({
+                    codigo: codigoPedido,
+                    items: carritoCheckout,
+                    cliente: { nombre, apellido, email, telefono },
+                    envio
+                });
+
+                window.location.href = urlPago;
+
+                return;
+
+            } catch (errorPago) {
+
+                console.warn(
+                    "No se pudo abrir Mercado Pago, se envía link a mano:",
+                    errorPago
+                );
+
+            }
 
             formularioCheckout.style.display = "none";
 
@@ -1068,6 +1532,21 @@ formularioCheckout.addEventListener(
 
             }
 
+            if (pago === "transferencia") {
+
+                configurarConfirmacion({
+                    etiqueta: "PEDIDO REGISTRADO",
+                    icono: "$",
+                    marca: "Transferencia",
+                    detalle: "Comprobante recibido",
+                    texto:
+                        "Recibimos tu pedido y el comprobante. Lo revisamos " +
+                        "y te escribimos por WhatsApp para coordinar la " +
+                        "entrega o el retiro."
+                });
+
+            }
+
             const textoWhatsapp =
                 `Hola MUSÉ TENTACIÓN! Hice el pedido ${codigoPedido}.\n\n` +
                 `${detalleProductos}\n\n` +
@@ -1079,7 +1558,11 @@ formularioCheckout.addEventListener(
                         : ""
                 ) +
                 `Cliente: ${nombre} ${apellido}\n\n` +
-                "Quedo a la espera del link de pago de Mercado Pago.";
+                (
+                    pago === "transferencia"
+                        ? "Pagué por transferencia y subí el comprobante."
+                        : "Quedo a la espera del link de pago de Mercado Pago."
+                );
 
             if (enlaceWhatsApp) {
 
@@ -1087,18 +1570,6 @@ formularioCheckout.addEventListener(
                     construirUrlWhatsApp(textoWhatsapp);
 
             }
-
-            localStorage.setItem(
-                "ultimoPedidoMuse",
-                JSON.stringify({
-                    pedido: codigoPedido,
-                    total,
-                    pago: "mercadopago",
-                    envio,
-                    cliente: `${nombre} ${apellido}`,
-                    fecha: new Date().toISOString()
-                })
-            );
 
             /*
                 Solo vaciamos el carrito después
@@ -1135,6 +1606,8 @@ formularioCheckout.addEventListener(
    INICIALIZAR
 =========================== */
 
+mostrarResultadoPago();
+
 dibujarResumen();
 
 actualizarAvisoTope();
@@ -1144,3 +1617,5 @@ actualizarTarjetasSeleccionadas("envio");
 actualizarTarjetasSeleccionadas("pago");
 
 actualizarCamposEnvio();
+
+actualizarBloqueTransferencia();
