@@ -32,7 +32,7 @@
       <stop offset="0" stop-color="#5a2a16"/><stop offset=".4" stop-color="#8a5030"/><stop offset="1" stop-color="#4a2212"/>
     </linearGradient>
     <clipPath id="dbclip"><path clip-rule="evenodd" d="M27 540a513 513 0 1 0 1026 0a513 513 0 1 0 -1026 0ZM259.2 540a280.8 280.8 0 1 1 561.6 0a280.8 280.8 0 1 1 -561.6 0Z"/></clipPath></defs>
-    <rect width="1080" height="1080" fill="#fdf3ea"/>
+    
   <circle cx="546" cy="552" r="513" fill="#55241a" opacity=".16"/>
   <path fill-rule="evenodd" d="M27 540a513 513 0 1 0 1026 0a513 513 0 1 0 -1026 0ZM259.2 540a280.8 280.8 0 1 1 561.6 0a280.8 280.8 0 1 1 -561.6 0Z" fill="url(#dbaro)"/>
   <g clip-path="url(#dbclip)">
